@@ -1,4 +1,4 @@
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useEffect } from 'react';
 import { useOnboardingStore } from '../store/onboarding';
 import { SplitLayout } from '../components/layout/SplitLayout';
 import { VideoPlayer } from '../components/video/VideoPlayer';
@@ -10,7 +10,22 @@ import { checkSlugAvailability } from '../lib/api';
 export function Step03Subdomain() {
   const { data, update, next, prev } = useOnboardingStore();
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
-  const checkingRef = useRef(false);
+
+  const runCheck = useCallback(async (slug: string) => {
+    if (slug.length < 3) {
+      update({ slugAvailable: null });
+      return;
+    }
+
+    update({ slugAvailable: null }); // null = checking state
+
+    const available = await checkSlugAvailability(slug);
+    // Only update if the slug hasn't changed during the check
+    const currentSlug = useOnboardingStore.getState().data.slug;
+    if (currentSlug === slug) {
+      update({ slugAvailable: available });
+    }
+  }, [update]);
 
   const debouncedCheck = useCallback((slug: string) => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -20,19 +35,24 @@ export function Step03Subdomain() {
       return;
     }
 
-    checkingRef.current = true;
-    update({ slugAvailable: null }); // null = checking
+    update({ slugAvailable: null }); // show checking state immediately
 
-    debounceRef.current = setTimeout(async () => {
-      const available = await checkSlugAvailability(slug);
-      checkingRef.current = false;
-      // Only update if the slug hasn't changed during the check
-      const currentSlug = useOnboardingStore.getState().data.slug;
-      if (currentSlug === slug) {
-        update({ slugAvailable: available });
-      }
+    debounceRef.current = setTimeout(() => {
+      runCheck(slug);
     }, 500);
-  }, [update]);
+  }, [update, runCheck]);
+
+  // Run check on mount if slug is already filled (e.g. from website scraper)
+  useEffect(() => {
+    if (data.slug.length >= 3 && data.slugAvailable === null) {
+      runCheck(data.slug);
+    }
+    // Also fix stale false state from previous sessions
+    if (data.slug.length >= 3 && data.slugAvailable === false) {
+      runCheck(data.slug);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSlugChange = (v: string) => {
     const cleaned = v.toLowerCase().replace(/[^a-z0-9-]/g, '');

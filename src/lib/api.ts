@@ -177,8 +177,11 @@ export async function markComplete(
  * Returns true if available, false if taken.
  */
 export async function checkSlugAvailability(slug: string): Promise<boolean> {
+  if (!slug || slug.length < 3) return false;
+
   const plugin = getPlugin();
-  if (!plugin || !slug || slug.length < 3) return false;
+  // If SDK isn't ready, default to available so we don't block the user
+  if (!plugin) return true;
 
   try {
     const model = plugin.switchTo(MODEL_NAME);
