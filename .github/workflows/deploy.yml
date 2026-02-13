@@ -1,0 +1,36 @@
+name: Deploy to Server
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            DEPLOY_DIR="/srv/projects/n8n-onboarding"
+            REPO="https://${{ secrets.GH_PAT }}@github.com/itmooti/n8n-onboarding.git"
+
+            if [ ! -d "$DEPLOY_DIR/.git" ]; then
+              mkdir -p /srv/projects
+              git clone "$REPO" "$DEPLOY_DIR"
+            fi
+
+            cd "$DEPLOY_DIR"
+            git pull origin main
+
+            printf '%s\n' \
+              "VITE_VITALSYNC_API_KEY=${{ secrets.VITE_VITALSYNC_API_KEY }}" \
+              "VITE_VITALSYNC_SLUG=${{ secrets.VITE_VITALSYNC_SLUG }}" \
+              > .env
+
+            docker compose down
+            docker compose up -d --build

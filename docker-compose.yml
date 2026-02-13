@@ -1,0 +1,11 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_VITALSYNC_API_KEY: ${VITE_VITALSYNC_API_KEY}
+        VITE_VITALSYNC_SLUG: ${VITE_VITALSYNC_SLUG}
+    ports:
+      - "3050:80"
+    restart: unless-stopped

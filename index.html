@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Awesomate | n8n Hosting Setup</title>
+    <meta name="description" content="Set up your managed n8n hosting environment with Awesomate in just a few minutes." />
+
+    <!-- Google Fonts: Inter (body) + Bricolage Grotesque (headings) + JetBrains Mono (code) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Bricolage+Grotesque:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              navy: '#0f1128',
+              accent: '#e9484d',
+              'accent-orange': '#ef9563',
+              blue: '#1e63e9',
+              'gray-bg': '#f8f9fb',
+              'gray-border': 'rgba(15,17,40,0.06)',
+              'dark-bg': '#0a0e1a',
+              success: '#22c55e',
+            },
+            fontFamily: {
+              sans: ['Inter', '-apple-system', 'sans-serif'],
+              heading: ['Bricolage Grotesque', 'sans-serif'],
+              mono: ['JetBrains Mono', 'monospace'],
+            },
+          },
+        },
+      };
+    </script>
+
+    <style>
+      /* Awesomate brand system */
+      :root {
+        --color-1: #0f1128;
+        --color-2: #e9484d;
+        --color-3: #ef9563;
+        --color-4: #1e63e9;
+        --color-5: #ffffff;
+        --color-bg-alt: #f8f9fb;
+        --color-bg-dark: #0a0e1a;
+        --font-main: 'Inter', sans-serif;
+        --font-heading: 'Bricolage Grotesque', sans-serif;
+        --font-mono: 'JetBrains Mono', monospace;
+      }
+
+      * {
+        box-sizing: border-box;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+
+      *:focus-visible {
+        outline: 2px solid var(--color-2);
+        outline-offset: 4px;
+      }
+
+      /* Gradient text utility */
+      .accent-gradient-text {
+        background: linear-gradient(135deg, var(--color-2) 0%, var(--color-3) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      /* Button shimmer animation */
+      @keyframes shimmer {
+        0% { background-position: -200% center; }
+        100% { background-position: 200% center; }
+      }
+      .btn-shimmer {
+        background-size: 200% 100%;
+        animation: shimmer 3s ease-in-out infinite;
+      }
+
+      /* Dot grid pattern */
+      .dot-grid {
+        background-image: radial-gradient(circle, rgba(15,17,40,0.04) 1px, transparent 1px);
+        background-size: 24px 24px;
+      }
+    </style>
+
+    <!-- VitalStats SDK -->
+    <script
+      async
+      data-chunk="client"
+      src="https://static-au03.vitalstats.app/static/sdk/v1/latest.js"
+      crossorigin="anonymous"
+    ></script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
