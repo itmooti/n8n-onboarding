@@ -1,35 +1,44 @@
 import { useOnboardingStore } from '../store/onboarding';
+import { useWebsiteScraper } from '../hooks/useWebsiteScraper';
 import { SplitLayout } from '../components/layout/SplitLayout';
 import { VideoPlayer } from '../components/video/VideoPlayer';
 import { StepHeading, Input, Button } from '../components/ui';
 
 export function Step01Welcome() {
   const { data, update, next } = useOnboardingStore();
+  const { scrape, loading } = useWebsiteScraper();
 
-  const handleFetch = () => {
-    if (data.website_url) {
-      update({ websiteFetching: true });
-      // Simulate website fetch for now — will be replaced with n8n webhook
+  const handleFetch = async () => {
+    if (!data.website_url) return;
+
+    update({ websiteFetching: true });
+
+    const result = await scrape(data.website_url);
+
+    if (result) {
       const domain = data.website_url
         .replace(/https?:\/\//, '')
         .replace(/www\./, '')
         .split('/')[0]
         .split('.')[0];
-      const name = domain.charAt(0).toUpperCase() + domain.slice(1);
-      setTimeout(() => {
-        update({
-          company_trading_name: name + ' Co',
-          email: 'hello@' + domain + '.com',
-          slug: domain.toLowerCase(),
-          slugAvailable: true,
-          color1: '#e9484d',
-          color2: '#0f1128',
-          business_summary: `${name} Co is a business that provides professional services. Based on their website, they appear to offer solutions to their customers with a focus on quality and reliability.`,
-          websiteFetched: true,
-          websiteFetching: false,
-        });
-        next();
-      }, 1500);
+
+      update({
+        company_trading_name: result.company_name || '',
+        email: result.email || '',
+        slug: domain.toLowerCase(),
+        slugAvailable: null, // Will be checked on Step 3
+        color1: result.color1 || '#e9484d',
+        color2: result.color2 || '#0f1128',
+        logo_url: result.logo_url || null,
+        business_summary: result.summary || '',
+        detected_cms: result.cms || null,
+        country: result.country || 'Australia',
+        websiteFetched: true,
+        websiteFetching: false,
+      });
+      next();
+    } else {
+      update({ websiteFetching: false });
     }
   };
 
@@ -55,9 +64,9 @@ export function Step01Welcome() {
       <div className="flex gap-3 mt-2">
         <Button
           onClick={handleFetch}
-          disabled={data.websiteFetching}
+          disabled={loading || data.websiteFetching || !data.website_url}
         >
-          {data.websiteFetching ? 'Fetching...' : 'Fetch My Details'}
+          {loading || data.websiteFetching ? 'Fetching...' : 'Fetch My Details'}
         </Button>
       </div>
       <button

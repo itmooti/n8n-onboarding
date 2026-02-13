@@ -2,6 +2,13 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { OnboardingData } from '../types/onboarding';
 import { recommendPlan } from '../lib/plans';
+import {
+  createOnboardingRecord,
+  updatePlanSelection,
+  updateAddons,
+  updateBusinessProfile,
+  markComplete,
+} from '../lib/api';
 
 interface OnboardingStore {
   step: number;
@@ -55,15 +62,64 @@ const initialData: OnboardingData = {
   completed_at: null,
 };
 
+/**
+ * Auto-save to VitalStats at key step transitions.
+ * Runs in the background — never blocks the UI.
+ */
+async function autoSave(prevStep: number, nextStep: number, data: OnboardingData): Promise<string | null> {
+  // Step 3 → 4: Create record with business details
+  if (prevStep === 3 && nextStep === 4 && !data.vitalsync_record_id) {
+    const id = await createOnboardingRecord(data);
+    return id;
+  }
+
+  if (!data.vitalsync_record_id) return null;
+
+  // Step 6 → 7: Save plan selection
+  if (prevStep === 6 && nextStep === 7) {
+    updatePlanSelection(data.vitalsync_record_id, data);
+  }
+
+  // Step 13 → 14: Save add-on selections + cost summary
+  if (prevStep === 13 && nextStep === 14) {
+    updateAddons(data.vitalsync_record_id, data);
+  }
+
+  // Step 15 → 16: Save business profile
+  if (prevStep === 15 && nextStep === 16) {
+    updateBusinessProfile(data.vitalsync_record_id, data);
+  }
+
+  // Arriving at Step 16: Mark complete
+  if (nextStep === 16) {
+    markComplete(data.vitalsync_record_id, data);
+  }
+
+  return null;
+}
+
 export const useOnboardingStore = create<OnboardingStore>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       step: 1,
       data: { ...initialData },
 
       setStep: (step) => set({ step }),
 
-      next: () => set((state) => ({ step: Math.min(state.step + 1, 16) })),
+      next: () => {
+        const state = get();
+        const nextStep = Math.min(state.step + 1, 16);
+        set({ step: nextStep });
+
+        // Fire-and-forget auto-save
+        autoSave(state.step, nextStep, state.data).then((recordId) => {
+          if (recordId) {
+            set((s) => ({
+              data: { ...s.data, vitalsync_record_id: recordId },
+            }));
+          }
+        });
+      },
 
       prev: () => set((state) => ({ step: Math.max(state.step - 1, 1) })),
 

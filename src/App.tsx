@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useOnboardingStore } from './store/onboarding';
+import { useVitalSync } from './hooks/useVitalSync';
 import { ProgressBar } from './components/layout/ProgressBar';
 import { TOTAL_STEPS } from './lib/constants';
 
@@ -63,6 +64,9 @@ function App() {
   const { step } = useOnboardingStore();
   const [direction, setDirection] = useState(0);
   const [prevStep, setPrevStep] = useState(step);
+
+  // Initialize VitalStats SDK connection
+  useVitalSync();
 
   useEffect(() => {
     setDirection(step > prevStep ? 1 : -1);

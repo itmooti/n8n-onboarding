@@ -1,19 +1,43 @@
+import { useRef, useCallback } from 'react';
 import { useOnboardingStore } from '../store/onboarding';
 import { SplitLayout } from '../components/layout/SplitLayout';
 import { VideoPlayer } from '../components/video/VideoPlayer';
 import { StepHeading, Input } from '../components/ui';
 import { NavButtons } from '../components/layout';
-import { Check, X } from 'lucide-react';
+import { Check, X, Loader2 } from 'lucide-react';
+import { checkSlugAvailability } from '../lib/api';
 
 export function Step03Subdomain() {
   const { data, update, next, prev } = useOnboardingStore();
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const checkingRef = useRef(false);
+
+  const debouncedCheck = useCallback((slug: string) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    if (slug.length < 3) {
+      update({ slugAvailable: null });
+      return;
+    }
+
+    checkingRef.current = true;
+    update({ slugAvailable: null }); // null = checking
+
+    debounceRef.current = setTimeout(async () => {
+      const available = await checkSlugAvailability(slug);
+      checkingRef.current = false;
+      // Only update if the slug hasn't changed during the check
+      const currentSlug = useOnboardingStore.getState().data.slug;
+      if (currentSlug === slug) {
+        update({ slugAvailable: available });
+      }
+    }, 500);
+  }, [update]);
 
   const handleSlugChange = (v: string) => {
     const cleaned = v.toLowerCase().replace(/[^a-z0-9-]/g, '');
-    update({
-      slug: cleaned,
-      slugAvailable: cleaned.length > 2 ? true : null, // Will be replaced with real check
-    });
+    update({ slug: cleaned });
+    debouncedCheck(cleaned);
   };
 
   return (
@@ -40,6 +64,12 @@ export function Step03Subdomain() {
         placeholder="yourname"
       />
 
+      {data.slug.length > 2 && data.slugAvailable === null && (
+        <div className="flex items-center gap-2 text-gray-400 text-[13px] font-semibold mb-4">
+          <Loader2 size={16} className="animate-spin" /> Checking availability...
+        </div>
+      )}
+
       {data.slugAvailable === true && data.slug.length > 2 && (
         <div className="flex items-center gap-2 text-success text-[13px] font-semibold mb-4">
           <Check size={16} /> This one's yours!
@@ -56,7 +86,7 @@ export function Step03Subdomain() {
         onBack={prev}
         onNext={next}
         nextLabel="Lock It In"
-        nextDisabled={!data.slug || data.slug.length < 3 || data.slugAvailable === false}
+        nextDisabled={!data.slug || data.slug.length < 3 || data.slugAvailable !== true}
       />
     </SplitLayout>
   );
