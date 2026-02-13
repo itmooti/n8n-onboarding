@@ -3,8 +3,10 @@ import { useWebsiteScraper } from '../hooks/useWebsiteScraper';
 import { SplitLayout } from '../components/layout/SplitLayout';
 import { VideoPlayer } from '../components/video/VideoPlayer';
 import { StepHeading, Input, Button } from '../components/ui';
+import { getStepVideo } from '../lib/videos';
 
 export function Step01Welcome() {
+  const video = getStepVideo(1);
   const { data, update, next } = useOnboardingStore();
   const { scrape, loading } = useWebsiteScraper();
 
@@ -49,7 +51,7 @@ export function Step01Welcome() {
 
   return (
     <SplitLayout
-      video={<VideoPlayer title="Welcome to Awesomate" duration="0:15" />}
+      video={<VideoPlayer title={video?.title || 'Welcome to Awesomate'} duration={video?.duration || '0:08'} src={video?.src} />}
     >
       <StepHeading
         title="Let's start with your website"

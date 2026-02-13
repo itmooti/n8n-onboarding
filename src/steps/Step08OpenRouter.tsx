@@ -3,13 +3,15 @@ import { SplitLayout } from '../components/layout/SplitLayout';
 import { VideoPlayer } from '../components/video/VideoPlayer';
 import { StepHeading, SelectionCard } from '../components/ui';
 import { NavButtons } from '../components/layout';
+import { getStepVideo } from '../lib/videos';
 
 export function Step08OpenRouter() {
   const { data, update, next, prev } = useOnboardingStore();
+  const video = getStepVideo(8);
 
   return (
     <SplitLayout
-      video={<VideoPlayer title="What is OpenRouter?" duration="0:20" />}
+      video={<VideoPlayer title={video?.title || 'What is OpenRouter?'} duration={video?.duration || '0:08'} src={video?.src} />}
     >
       <StepHeading
         title="Do you have an OpenRouter account?"

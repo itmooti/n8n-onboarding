@@ -5,8 +5,10 @@ import { StepHeading, SelectionCard } from '../components/ui';
 import { NavButtons } from '../components/layout';
 import type { SetupChoice, PlanKey } from '../types/onboarding';
 import { getActivePlan } from '../lib/costs';
+import { getStepVideo } from '../lib/videos';
 
 interface AddonStepProps {
+  stepNumber: number;
   title: string;
   subtitle: string;
   videoTitle: string;
@@ -19,6 +21,7 @@ interface AddonStepProps {
 }
 
 export function AddonStep({
+  stepNumber,
   title,
   subtitle,
   videoTitle,
@@ -30,6 +33,7 @@ export function AddonStep({
   field,
 }: AddonStepProps) {
   const { data, update, next, prev } = useOnboardingStore();
+  const video = getStepVideo(stepNumber);
 
   const activePlan: PlanKey = getActivePlan(data);
   const isFree = activePlan === 'pro' || activePlan === 'embedded';
@@ -37,7 +41,7 @@ export function AddonStep({
 
   return (
     <SplitLayout
-      video={<VideoPlayer title={videoTitle} duration={videoDuration} />}
+      video={<VideoPlayer title={video?.title || videoTitle} duration={video?.duration || videoDuration} src={video?.src} />}
     >
       <StepHeading title={title} subtitle={subtitle} />
 

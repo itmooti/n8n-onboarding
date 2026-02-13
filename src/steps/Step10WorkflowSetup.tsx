@@ -3,6 +3,7 @@ import { AddonStep } from './AddonStep';
 export function Step10WorkflowSetup() {
   return (
     <AddonStep
+      stepNumber={10}
       title="Workflow Setup"
       subtitle="Want to see results from day one? We'll configure your first automations so they're ready to go live."
       videoTitle="Workflow Templates"

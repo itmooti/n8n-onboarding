@@ -3,13 +3,15 @@ import { SplitLayout } from '../components/layout/SplitLayout';
 import { VideoPlayer } from '../components/video/VideoPlayer';
 import { StepHeading, SelectionCard } from '../components/ui';
 import { NavButtons } from '../components/layout';
+import { getStepVideo } from '../lib/videos';
 
 export function Step04TechLevel() {
   const { data, update, next, prev } = useOnboardingStore();
+  const video = getStepVideo(4);
 
   return (
     <SplitLayout
-      video={<VideoPlayer title="Your Comfort Level" duration="0:18" />}
+      video={<VideoPlayer title={video?.title || 'Your Comfort Level'} duration={video?.duration || '0:08'} src={video?.src} />}
     >
       <StepHeading
         title="How technical are you?"

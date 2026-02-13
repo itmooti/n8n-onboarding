@@ -6,8 +6,10 @@ import { StepHeading, Input } from '../components/ui';
 import { NavButtons } from '../components/layout';
 import { Check, X, Loader2 } from 'lucide-react';
 import { checkSlugAvailability } from '../lib/api';
+import { getStepVideo } from '../lib/videos';
 
 export function Step03Subdomain() {
+  const video = getStepVideo(3);
   const { data, update, next, prev } = useOnboardingStore();
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
@@ -62,7 +64,7 @@ export function Step03Subdomain() {
 
   return (
     <SplitLayout
-      video={<VideoPlayer title="Your Workspace URL" duration="0:12" />}
+      video={<VideoPlayer title={video?.title || 'Your Workspace URL'} duration={video?.duration || '0:08'} src={video?.src} />}
     >
       <StepHeading
         title="Pick your workspace URL"

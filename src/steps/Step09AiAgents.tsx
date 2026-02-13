@@ -3,6 +3,7 @@ import { AddonStep } from './AddonStep';
 export function Step09AiAgents() {
   return (
     <AddonStep
+      stepNumber={9}
       title="AI Chat Agent Templates"
       subtitle="Pre-built chat agents for support, lead qualification, and more — installed and configured for your business."
       videoTitle="AI Chat Agents"

@@ -3,13 +3,15 @@ import { SplitLayout } from '../components/layout/SplitLayout';
 import { VideoPlayer } from '../components/video/VideoPlayer';
 import { StepHeading, SelectionCard } from '../components/ui';
 import { NavButtons } from '../components/layout';
+import { getStepVideo } from '../lib/videos';
 
 export function Step11LocalHosting() {
   const { data, update, next, prev } = useOnboardingStore();
+  const video = getStepVideo(11);
 
   return (
     <SplitLayout
-      video={<VideoPlayer title="Data Sovereignty" duration="0:15" />}
+      video={<VideoPlayer title={video?.title || 'Data Sovereignty'} duration={video?.duration || '0:08'} src={video?.src} />}
     >
       <StepHeading
         title={`Do you need hosting in ${data.country || 'your country'}?`}

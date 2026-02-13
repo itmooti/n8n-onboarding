@@ -4,9 +4,11 @@ import { VideoPlayer } from '../components/video/VideoPlayer';
 import { StepHeading } from '../components/ui';
 import { NavButtons } from '../components/layout';
 import { ROLES } from '../lib/constants';
+import { getStepVideo } from '../lib/videos';
 
 export function Step14BusinessProfile() {
   const { data, update, next, prev } = useOnboardingStore();
+  const video = getStepVideo(14);
 
   const toggleRole = (role: string) => {
     const newRoles = data.roles.includes(role)
@@ -17,7 +19,7 @@ export function Step14BusinessProfile() {
 
   return (
     <SplitLayout
-      video={<VideoPlayer title="About Your Business" duration="0:18" />}
+      video={<VideoPlayer title={video?.title || 'About Your Business'} duration={video?.duration || '0:08'} src={video?.src} />}
     >
       <StepHeading
         title="Tell us about your business"
