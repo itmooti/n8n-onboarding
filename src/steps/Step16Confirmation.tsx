@@ -7,7 +7,7 @@ import { buildOrderLineItems, calculateCheckoutTotals } from '../lib/products';
 import { usePayment } from '../hooks/usePayment';
 import { markComplete } from '../lib/api';
 import { COUNTRIES } from '../lib/countries';
-import { Loader2, CreditCard, Lock, MapPin, AlertCircle } from 'lucide-react';
+import { Loader2, CreditCard, Lock, MapPin, AlertCircle, ShieldCheck, RefreshCw } from 'lucide-react';
 
 /** Format card number with spaces every 4 digits */
 function formatCardNumber(value: string): string {
@@ -390,10 +390,42 @@ export function Step16Confirmation() {
         </div>
       )}
 
-      {/* Security note */}
-      <div className="flex items-center justify-center gap-1.5 text-gray-400 text-[11px] mb-4">
-        <Lock size={12} />
-        <span>Secured with 256-bit SSL encryption</span>
+      {/* Security & trust signals */}
+      <div className="mb-5">
+        {/* Eway site seal */}
+        <div className="flex justify-center mb-4">
+          <a
+            href="http://www.eway.com.au/secure-site-seal?i=12&s=7&pid=7b219f54-20a0-48d5-ba3c-4180844729b3&theme=0"
+            title="Eway Payment Gateway"
+            target="_blank"
+            rel="nofollow noreferrer"
+          >
+            <img
+              alt="Eway Payment Gateway"
+              src="https://www.eway.com.au/developer/payment-code/verified-seal.php?img=12&size=7&pid=7b219f54-20a0-48d5-ba3c-4180844729b3&theme=0"
+            />
+          </a>
+        </div>
+
+        {/* Trust badges */}
+        <div className="grid grid-cols-3 gap-3 text-center mb-4">
+          <div className="flex flex-col items-center gap-1">
+            <Lock size={16} className="text-gray-400" />
+            <span className="text-gray-400 text-[10px] font-semibold leading-tight">256-BIT SSL ENCRYPTION</span>
+          </div>
+          <div className="flex flex-col items-center gap-1">
+            <ShieldCheck size={16} className="text-gray-400" />
+            <span className="text-gray-400 text-[10px] font-semibold leading-tight">PCI DSS COMPLIANT</span>
+          </div>
+          <div className="flex flex-col items-center gap-1">
+            <RefreshCw size={16} className="text-gray-400" />
+            <span className="text-gray-400 text-[10px] font-semibold leading-tight">CANCEL ANYTIME</span>
+          </div>
+        </div>
+
+        <p className="text-center text-gray-400 text-[11px] leading-relaxed max-w-[400px] mx-auto">
+          Your payment is processed securely by Eway. Your card details are encrypted and never stored on our servers. You can cancel your subscription at any time.
+        </p>
       </div>
 
       {/* Action buttons */}
