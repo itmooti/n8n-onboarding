@@ -6,7 +6,8 @@ import { getActivePlan } from '../lib/costs';
 import { buildOrderLineItems, calculateCheckoutTotals } from '../lib/products';
 import { usePayment } from '../hooks/usePayment';
 import { markComplete } from '../lib/api';
-import { Loader2, CreditCard, Lock } from 'lucide-react';
+import { COUNTRIES } from '../lib/countries';
+import { Loader2, CreditCard, Lock, MapPin, AlertCircle } from 'lucide-react';
 
 /** Format card number with spaces every 4 digits */
 function formatCardNumber(value: string): string {
@@ -23,6 +24,15 @@ export function Step16Confirmation() {
   const [expiryMonth, setExpiryMonth] = useState('');
   const [expiryYear, setExpiryYear] = useState('');
   const [cvv, setCvv] = useState('');
+
+  // Billing address state
+  const [address, setAddress] = useState('');
+  const [address2, setAddress2] = useState('');
+  const [city, setCity] = useState('');
+  const [state, setState] = useState('');
+  const [zip, setZip] = useState('');
+  const [country, setCountry] = useState(data.country || 'Australia');
+
   const [localError, setLocalError] = useState<string | null>(null);
 
   const paymentComplete = data.payment_status === 'completed';
@@ -45,15 +55,23 @@ export function Step16Confirmation() {
     expiryMonth !== '' &&
     expiryYear !== '' &&
     cvv.length >= 3 &&
-    cvv.length <= 4;
+    cvv.length <= 4 &&
+    address.trim() !== '' &&
+    city.trim() !== '' &&
+    zip.trim() !== '' &&
+    country !== '';
 
   const handlePayment = async () => {
     setLocalError(null);
 
     if (!isValid) {
-      setLocalError('Please fill in all card details.');
+      setLocalError('Please fill in all required fields.');
       return;
     }
+
+    // Look up country code from name
+    const countryEntry = COUNTRIES.find((c) => c.name === country);
+    const countryCode = countryEntry?.code || 'AU';
 
     const result = await processPayment(
       {
@@ -61,6 +79,14 @@ export function Step16Confirmation() {
         code: cvv,
         expire_month: Number(expiryMonth),
         expire_year: Number(expiryYear),
+      },
+      {
+        address: address.trim(),
+        address2: address2.trim(),
+        city: city.trim(),
+        state: state.trim(),
+        zip: zip.trim(),
+        country: countryCode,
       },
       data,
     );
@@ -102,6 +128,13 @@ export function Step16Confirmation() {
     value: String(currentYear + i),
     label: String(currentYear + i),
   }));
+
+  const inputClass =
+    'w-full px-4 py-3 rounded-[10px] border-2 border-gray-border text-[15px] font-sans outline-none transition-all bg-white box-border focus:border-accent focus:shadow-[0_0_0_3px_rgba(233,72,77,0.08)]';
+  const selectClass =
+    'w-full px-3 py-3 rounded-[10px] border-2 border-gray-border text-[15px] font-sans outline-none transition-all bg-white box-border focus:border-accent focus:shadow-[0_0_0_3px_rgba(233,72,77,0.08)] appearance-none';
+  const labelClass =
+    'block text-[11px] font-semibold text-gray-400 mb-1.5 uppercase tracking-[0.1em] font-sans';
 
   return (
     <>
@@ -172,6 +205,104 @@ export function Step16Confirmation() {
         </div>
       </div>
 
+      {/* Billing Address */}
+      <div className="bg-white border-2 border-gray-border rounded-[16px] sm:rounded-[20px] p-4 sm:p-7 mb-5">
+        <div className="flex items-center gap-2 mb-4">
+          <MapPin size={18} className="text-gray-400" />
+          <span className="text-[11px] font-bold text-gray-400 uppercase tracking-[0.1em]">
+            BILLING ADDRESS
+          </span>
+        </div>
+
+        {/* Address line 1 */}
+        <div className="mb-3">
+          <label className={labelClass}>
+            Address <span className="text-accent">*</span>
+          </label>
+          <input
+            type="text"
+            autoComplete="address-line1"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            placeholder="123 Main Street"
+            className={inputClass}
+          />
+        </div>
+
+        {/* Address line 2 */}
+        <div className="mb-3">
+          <label className={labelClass}>Address Line 2</label>
+          <input
+            type="text"
+            autoComplete="address-line2"
+            value={address2}
+            onChange={(e) => setAddress2(e.target.value)}
+            placeholder="Suite, unit, floor (optional)"
+            className={inputClass}
+          />
+        </div>
+
+        {/* City + State */}
+        <div className="grid grid-cols-2 gap-3 mb-3">
+          <div>
+            <label className={labelClass}>
+              City <span className="text-accent">*</span>
+            </label>
+            <input
+              type="text"
+              autoComplete="address-level2"
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              placeholder="Sydney"
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label className={labelClass}>State / Region</label>
+            <input
+              type="text"
+              autoComplete="address-level1"
+              value={state}
+              onChange={(e) => setState(e.target.value)}
+              placeholder="NSW"
+              className={inputClass}
+            />
+          </div>
+        </div>
+
+        {/* Postcode + Country */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className={labelClass}>
+              Postcode <span className="text-accent">*</span>
+            </label>
+            <input
+              type="text"
+              autoComplete="postal-code"
+              value={zip}
+              onChange={(e) => setZip(e.target.value)}
+              placeholder="2000"
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label className={labelClass}>
+              Country <span className="text-accent">*</span>
+            </label>
+            <select
+              value={country}
+              onChange={(e) => setCountry(e.target.value)}
+              autoComplete="country-name"
+              className={selectClass}
+            >
+              {COUNTRIES.map((c) => (
+                <option key={c.code} value={c.name}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
       {/* Credit Card Form */}
       <div className="bg-white border-2 border-gray-border rounded-[16px] sm:rounded-[20px] p-4 sm:p-7 mb-5">
         <div className="flex items-center gap-2 mb-4">
@@ -183,7 +314,7 @@ export function Step16Confirmation() {
 
         {/* Card Number */}
         <div className="mb-4">
-          <label className="block text-[11px] font-semibold text-gray-400 mb-1.5 uppercase tracking-[0.1em] font-sans">
+          <label className={labelClass}>
             Card Number <span className="text-accent">*</span>
           </label>
           <input
@@ -192,22 +323,22 @@ export function Step16Confirmation() {
             autoComplete="cc-number"
             value={formatCardNumber(cardNumber)}
             onChange={(e) => setCardNumber(e.target.value.replace(/\D/g, ''))}
-            placeholder="4111 1111 1111 1111"
-            className="w-full px-4 py-3 rounded-[10px] border-2 border-gray-border text-[15px] font-mono outline-none transition-all bg-white box-border focus:border-accent focus:shadow-[0_0_0_3px_rgba(233,72,77,0.08)]"
+            placeholder="4444 3333 2222 1111"
+            className={`${inputClass} font-mono`}
           />
         </div>
 
         {/* Expiry + CVV row */}
         <div className="grid grid-cols-3 gap-3">
           <div>
-            <label className="block text-[11px] font-semibold text-gray-400 mb-1.5 uppercase tracking-[0.1em] font-sans">
+            <label className={labelClass}>
               Month <span className="text-accent">*</span>
             </label>
             <select
               value={expiryMonth}
               onChange={(e) => setExpiryMonth(e.target.value)}
               autoComplete="cc-exp-month"
-              className="w-full px-3 py-3 rounded-[10px] border-2 border-gray-border text-[15px] font-sans outline-none transition-all bg-white box-border focus:border-accent focus:shadow-[0_0_0_3px_rgba(233,72,77,0.08)] appearance-none"
+              className={selectClass}
             >
               <option value="">MM</option>
               {months.map((m) => (
@@ -216,14 +347,14 @@ export function Step16Confirmation() {
             </select>
           </div>
           <div>
-            <label className="block text-[11px] font-semibold text-gray-400 mb-1.5 uppercase tracking-[0.1em] font-sans">
+            <label className={labelClass}>
               Year <span className="text-accent">*</span>
             </label>
             <select
               value={expiryYear}
               onChange={(e) => setExpiryYear(e.target.value)}
               autoComplete="cc-exp-year"
-              className="w-full px-3 py-3 rounded-[10px] border-2 border-gray-border text-[15px] font-sans outline-none transition-all bg-white box-border focus:border-accent focus:shadow-[0_0_0_3px_rgba(233,72,77,0.08)] appearance-none"
+              className={selectClass}
             >
               <option value="">YY</option>
               {years.map((y) => (
@@ -232,7 +363,7 @@ export function Step16Confirmation() {
             </select>
           </div>
           <div>
-            <label className="block text-[11px] font-semibold text-gray-400 mb-1.5 uppercase tracking-[0.1em] font-sans">
+            <label className={labelClass}>
               CVV <span className="text-accent">*</span>
             </label>
             <input
@@ -242,7 +373,7 @@ export function Step16Confirmation() {
               value={cvv}
               onChange={(e) => setCvv(e.target.value.replace(/\D/g, '').slice(0, 4))}
               placeholder="123"
-              className="w-full px-4 py-3 rounded-[10px] border-2 border-gray-border text-[15px] font-mono outline-none transition-all bg-white box-border focus:border-accent focus:shadow-[0_0_0_3px_rgba(233,72,77,0.08)]"
+              className={`${inputClass} font-mono`}
             />
           </div>
         </div>
@@ -250,8 +381,12 @@ export function Step16Confirmation() {
 
       {/* Error display */}
       {localError && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-5 text-accent text-sm font-medium">
-          {localError}
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-5 flex gap-3 items-start">
+          <AlertCircle size={18} className="text-accent mt-0.5 flex-shrink-0" />
+          <div>
+            <div className="text-accent text-sm font-semibold mb-0.5">Payment Failed</div>
+            <div className="text-accent/80 text-sm">{localError}</div>
+          </div>
         </div>
       )}
 

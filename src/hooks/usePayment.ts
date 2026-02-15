@@ -11,6 +11,15 @@ export interface CardData {
   expire_year: number;
 }
 
+export interface BillingAddress {
+  address: string;
+  address2: string;
+  city: string;
+  state: string;
+  zip: string;
+  country: string;
+}
+
 interface PaymentResult {
   success: boolean;
   transaction_id?: string;
@@ -18,7 +27,7 @@ interface PaymentResult {
 }
 
 interface UsePaymentResult {
-  processPayment: (card: CardData, data: OnboardingData) => Promise<PaymentResult>;
+  processPayment: (card: CardData, billing: BillingAddress, data: OnboardingData) => Promise<PaymentResult>;
   loading: boolean;
   error: string | null;
 }
@@ -28,7 +37,7 @@ export function usePayment(): UsePaymentResult {
   const [error, setError] = useState<string | null>(null);
 
   const processPayment = useCallback(
-    async (card: CardData, data: OnboardingData): Promise<PaymentResult> => {
+    async (card: CardData, billing: BillingAddress, data: OnboardingData): Promise<PaymentResult> => {
       if (!PAYMENT_WEBHOOK_URL) {
         return { success: false, error: 'Payment is not configured' };
       }
@@ -49,6 +58,14 @@ export function usePayment(): UsePaymentResult {
           external_order_id: externalOrderId,
           products,
           billing: data.billing,
+          billing_address: {
+            address: billing.address,
+            address2: billing.address2,
+            city: billing.city,
+            state: billing.state,
+            zip: billing.zip,
+            country: billing.country,
+          },
           payer: {
             ccnumber: card.ccnumber,
             code: card.code,
