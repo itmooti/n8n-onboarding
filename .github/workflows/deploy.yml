@@ -26,7 +26,9 @@ jobs:
             fi
 
             cd "$DEPLOY_DIR"
-            git pull origin main
+            git fetch origin main
+            git reset --hard origin/main
+            git clean -fd
 
             printf '%s\n' \
               "VITE_VITALSYNC_API_KEY=${{ secrets.VITE_VITALSYNC_API_KEY }}" \
@@ -37,4 +39,5 @@ jobs:
               > .env
 
             docker compose down
-            docker compose up -d --build
+            docker compose build --no-cache
+            docker compose up -d
