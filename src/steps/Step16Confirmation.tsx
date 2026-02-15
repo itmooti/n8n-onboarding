@@ -449,6 +449,8 @@ export function Step16Confirmation() {
           )}
         </Button>
       </div>
+
+      <CheckoutFooter />
     </>
   );
 }
@@ -571,5 +573,61 @@ function ConfirmationView() {
         </div>
       )}
     </div>
+  );
+}
+
+/** Checkout page footer with logo, copyright, and legal links */
+function CheckoutFooter() {
+  return (
+    <footer className="mt-10 pt-6 border-t border-gray-200">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          {/* Greyed-out Awesomate logo */}
+          <svg height="18" viewBox="568 478 762 125" xmlns="http://www.w3.org/2000/svg" style={{ width: 'auto', opacity: 0.25 }}>
+            <defs>
+              <linearGradient id="footer-logo-grad" x1="595" y1="590" x2="725" y2="480" gradientUnits="userSpaceOnUse">
+                <stop offset="0" stopColor="#9ca3af" />
+                <stop offset="1" stopColor="#9ca3af" />
+              </linearGradient>
+            </defs>
+            <circle cx="639.5" cy="540.5" r="50" fill="none" stroke="url(#footer-logo-grad)" strokeWidth="11" />
+            <circle cx="639.5" cy="540.5" r="8" fill="#9ca3af" />
+            <circle cx="595" cy="540.5" r="6" fill="#9ca3af" /><circle cx="684" cy="540.5" r="6" fill="#9ca3af" />
+            <circle cx="617" cy="497" r="6" fill="#9ca3af" /><circle cx="662" cy="497" r="6" fill="#9ca3af" />
+            <circle cx="617" cy="584" r="6" fill="#9ca3af" /><circle cx="662" cy="584" r="6" fill="#9ca3af" />
+            <path fill="#9ca3af" d="M770.28,509.49h14.93l30.46,79.96h-15.53l-6.14-16.86h-33.35l-6.02,16.86h-14.57l30.22-79.96ZM764.86,560.79h24.93l-12.52-34.8-12.4,34.8Z" />
+            <polygon fill="#9ca3af" points="845.58 530.44 859.31 530.44 869.79 571.99 878.58 530.44 893.03 530.44 877.01 589.45 864.37 589.45 852.45 546.1 840.64 589.45 828 589.45 811.99 530.44 826.44 530.44 835.23 571.99 845.58 530.44" />
+            <polygon fill="#9ca3af" points="893.03 530.44 937.76 530.44 937.76 542.25 907.12 542.25 907.12 553.46 935.44 553.46 935.44 564.55 907.12 564.55 907.12 577.64 938.48 577.64 938.48 589.45 893.03 589.45 893.03 530.44" />
+            <path fill="#9ca3af" d="M940.17,575.57l11.44-6.86c2.76,5.41,6.62,8.42,13.24,8.42,5.9,0,9.14-2.65,9.14-6.62,0-4.57-3.96-6.14-10.58-8.91l-4.45-1.86c-9.14-3.85-15.05-8.66-15.05-18.89,0-9.39,7.22-16.61,18.41-16.61,8.06,0,13.84,2.77,17.92,10.1l-10.95,7.1c-2.41-4.33-5.05-6.02-7.82-6.02-3.49,0-5.66,2.17-5.66,5.54s2.17,5.53,8.18,8.06l4.33,1.81c10.7,4.57,15.52,9.39,15.52,19.61,0,11.31-8.79,17.45-20.82,17.45-11.68,0-19.73-5.54-22.86-12.28Z" />
+            <path fill="#9ca3af" d="M1029.72,528.64c17.21,0,31.42,13.72,31.42,31.18s-14.21,31.42-31.42,31.42-31.42-14.21-31.42-31.42,14.09-31.18,31.42-31.18ZM1029.72,578.42c10.34,0,17.45-8.18,17.45-18.65s-7.1-18.41-17.45-18.41-17.57,7.94-17.57,18.41,7.34,18.65,17.57,18.65Z" />
+            <polygon fill="#9ca3af" points="1064.84 530.44 1082.66 530.44 1097.95 567.67 1113.24 530.44 1131.06 530.44 1131.06 589.45 1117.45 589.45 1117.45 549 1103.48 583.55 1092.42 583.55 1078.45 549 1078.45 589.45 1064.84 589.45 1064.84 530.44" />
+            <path fill="#9ca3af" d="M1152.3,530.44h14.93l30.46,58.96h.24v-58.96h13.6v59.01h-14.93l-30.46-58.96h-.24v58.96h-13.6v-59.01ZM1166.15,509.49h14.93l30.46,79.96h-15.53l-6.14-16.86h-33.35l-6.02,16.86h-14.57l30.22-79.96ZM1160.73,560.79h24.93l-12.52-34.8-12.4,34.8Z" />
+            <polygon fill="#9ca3af" points="1218.41 530.44 1269.26 530.44 1269.26 542.73 1250.61 542.73 1250.61 589.45 1237.06 589.45 1237.06 542.73 1218.41 542.73 1218.41 530.44" />
+            <polygon fill="#9ca3af" points="1270.1 530.44 1314.83 530.44 1314.83 542.25 1284.19 542.25 1284.19 553.46 1312.51 553.46 1312.51 564.55 1284.19 564.55 1284.19 577.64 1315.54 577.64 1315.54 589.45 1270.1 589.45 1270.1 530.44" />
+          </svg>
+        </div>
+        <div className="text-gray-300 text-[11px] sm:text-[12px]">
+          &copy; {new Date().getFullYear()} Awesomate.ai. All rights reserved.
+        </div>
+        <div className="flex items-center gap-5">
+          <a
+            href="https://awesomate.ai/privacy"
+            target="_blank"
+            rel="noreferrer"
+            className="text-gray-400 hover:text-gray-600 text-[12px] font-medium transition-colors"
+          >
+            Privacy
+          </a>
+          <a
+            href="https://awesomate.ai/terms"
+            target="_blank"
+            rel="noreferrer"
+            className="text-gray-400 hover:text-gray-600 text-[12px] font-medium transition-colors"
+          >
+            Terms
+          </a>
+        </div>
+      </div>
+    </footer>
   );
 }
