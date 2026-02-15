@@ -99,6 +99,9 @@ export function Step16Confirmation() {
         completed_at: new Date().toISOString(),
       });
 
+      // Scroll to top so user sees the confirmation screen
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
       // Mark complete in VitalStats
       if (data.vitalsync_record_id) {
         markComplete(data.vitalsync_record_id, {
