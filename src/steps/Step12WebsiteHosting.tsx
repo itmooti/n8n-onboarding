@@ -28,9 +28,7 @@ export function Step12WebsiteHosting() {
       <div className="flex flex-col gap-3.5">
         <SelectionCard
           selected={data.website_hosting === true}
-          onClick={() =>
-            update({ website_hosting: true, detected_cms: 'WordPress' })
-          }
+          onClick={() => update({ website_hosting: true })}
           icon={<span>&#x2705;</span>}
           title="Yes, I'm interested!"
           subtitle={
@@ -48,7 +46,7 @@ export function Step12WebsiteHosting() {
         />
       </div>
 
-      {data.website_hosting === true && data.detected_cms && (
+      {data.website_hosting === true && data.detected_cms === 'WordPress' && (
         <div className="mt-4 p-4 bg-green-50 border border-green-300 rounded-xl">
           <p className="m-0 text-sm text-green-800">
             &#x2705; <strong>Great news!</strong> Your site appears to be

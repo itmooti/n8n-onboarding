@@ -64,20 +64,22 @@ export function Step01Welcome() {
         title="Let's start with your website"
         subtitle="We'll use this to auto-fill your business details so you don't have to type everything out."
       />
-      <Input
-        label="Website URL"
-        value={data.website_url}
-        onChange={(v) => update({ website_url: v })}
-        placeholder="https://yourbusiness.com"
-      />
-      <div className="flex gap-3 mt-2">
-        <Button
-          onClick={handleFetch}
-          disabled={loading || data.websiteFetching || !data.website_url}
-        >
-          {loading || data.websiteFetching ? 'Fetching...' : 'Fetch My Details'}
-        </Button>
-      </div>
+      <form onSubmit={(e) => { e.preventDefault(); handleFetch(); }}>
+        <Input
+          label="Website URL"
+          value={data.website_url}
+          onChange={(v) => update({ website_url: v })}
+          placeholder="https://yourbusiness.com"
+        />
+        <div className="flex gap-3 mt-2">
+          <Button
+            type="submit"
+            disabled={loading || data.websiteFetching || !data.website_url}
+          >
+            {loading || data.websiteFetching ? 'Fetching...' : 'Fetch My Details'}
+          </Button>
+        </div>
+      </form>
       {error && (
         <p className="text-amber-600 text-[13px] mt-2 font-medium">
           Couldn't fully scrape that site — we'll fill in what we can. You can edit everything on the next step.

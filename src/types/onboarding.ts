@@ -61,6 +61,11 @@ export interface OnboardingData {
   roles: string[];
   automation_areas: string[];
 
+  // Payment
+  payment_status: 'pending' | 'completed' | 'failed' | null;
+  transaction_id: string | null;
+  payment_error: string | null;
+
   // Meta
   vitalsync_record_id: string | null;
   completed_at: string | null;

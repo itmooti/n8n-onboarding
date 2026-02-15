@@ -1,12 +1,55 @@
 import type { VitalSyncPlugin } from '../types/sdk';
 import type { OnboardingData } from '../types/onboarding';
-import { calculateCosts, getActivePlan } from './costs';
+import { COUNTRIES } from './countries';
 
 /**
- * VitalStats model name for onboarding submissions.
- * Must match the model created in VitalStats admin.
+ * VitalStats internal model name (prefixed).
+ * switchTo() requires the internal name, not the publicName.
  */
-const MODEL_NAME = 'OnboardingSubmission';
+const MODEL_NAME = 'ItmootiContact';
+
+/** Map app plan keys to VitalStats enum values */
+const PLAN_MAP: Record<string, string> = {
+  'essentials': 'Essentials',
+  'support-plus': 'Support Plus',
+  'pro': 'Pro',
+  'embedded': 'Embedded',
+};
+
+const TECH_LEVEL_MAP: Record<string, string> = {
+  'self-sufficient': 'Self Sufficient',
+  'some-help': 'Some Help',
+  'full-service': 'Full Service',
+};
+
+const WORKFLOW_VOLUME_MAP: Record<string, string> = {
+  'starter': 'Starter',
+  'growing': 'Growing',
+  'full-engine': 'Full Engine',
+  'unsure': 'Unsure',
+};
+
+const SETUP_MAP: Record<string, string> = {
+  'self': 'Self',
+  'assisted': 'Assisted',
+};
+
+const BILLING_MAP: Record<string, string> = {
+  'monthly': 'Monthly',
+  'yearly': 'Yearly',
+};
+
+const TEAM_SIZE_MAP: Record<string, string> = {
+  'solo': 'Solo',
+  '2-5': '2-5',
+  '6-20': '6-20',
+  '20+': '20+',
+};
+
+/** Convert country name to ISO alpha-2 code for the schema */
+function countryToCode(name: string): string {
+  return COUNTRIES.find((c) => c.name === name)?.code || 'AU';
+}
 
 /**
  * Get the VitalStats plugin from the SDK.
@@ -17,7 +60,59 @@ function getPlugin(): VitalSyncPlugin | null {
 }
 
 /**
- * Create a new onboarding record (called after Step 3).
+ * Build the full field map from OnboardingData → Contact schema columns.
+ * Only includes fields that have actual data (skips nulls/empty).
+ */
+function buildFieldMap(data: OnboardingData | Partial<OnboardingData>): Record<string, unknown> {
+  const fields: Record<string, unknown> = {};
+
+  // Phase 1 — Business Discovery
+  if (data.website_url) fields.website = data.website_url;
+  if (data.slug) fields.subdomain_slug = data.slug;
+  if (data.company_trading_name) fields.company = data.company_trading_name;
+  if (data.company_legal_name) fields.business_name = data.company_legal_name;
+  if (data.email) fields.email = data.email;
+  if (data.sms_number) fields.sms_number = data.sms_number;
+  if (data.contact_first_name) fields.first_name = data.contact_first_name;
+  if (data.contact_last_name) fields.last_name = data.contact_last_name;
+  if (data.country) fields.country = countryToCode(data.country);
+  if (data.logo_url) fields.logo_url = data.logo_url;
+  if (data.color1) fields.colour_primary = data.color1;
+  if (data.color2) fields.colour_other = data.color2;
+
+  // Phase 2 — Package Fit
+  if (data.initial_plan) fields.initial_plan = PLAN_MAP[data.initial_plan] || '';
+  if (data.technical_level) fields.technical_level = TECH_LEVEL_MAP[data.technical_level] || '';
+  if (data.workflow_volume) fields.workflow_volume = WORKFLOW_VOLUME_MAP[data.workflow_volume] || '';
+  if (data.recommended_plan) fields.recommended_plan = PLAN_MAP[data.recommended_plan] || '';
+  const activePlan = data.final_plan || data.recommended_plan || data.initial_plan;
+  if (activePlan) fields.final_plan = PLAN_MAP[activePlan] || '';
+
+  // Phase 3 — Add-ons
+  if (data.billing) fields.billing = BILLING_MAP[data.billing] || '';
+  if (data.credential_setup) fields.credential_setup = SETUP_MAP[data.credential_setup] || '';
+  if (data.ai_agent_setup) fields.ai_agent_setup = SETUP_MAP[data.ai_agent_setup] || '';
+  if (data.workflow_setup) fields.workflow_setup = SETUP_MAP[data.workflow_setup] || '';
+  if (data.has_openrouter !== null && data.has_openrouter !== undefined) fields.has_openrouter = !!data.has_openrouter;
+  if (data.local_hosting !== null && data.local_hosting !== undefined) fields.local_hosting = !!data.local_hosting;
+  if (data.website_hosting !== null && data.website_hosting !== undefined) fields.website_hosting = !!data.website_hosting;
+  if (data.detected_cms) fields.detected_cms = data.detected_cms;
+
+  // Phase 4 — Business Profile
+  if (data.business_summary) fields.company_description = data.business_summary;
+  if (data.team_size) fields.team_size = TEAM_SIZE_MAP[data.team_size] || '';
+  if (data.roles && data.roles.length > 0) fields.roles = data.roles.join(', ');
+  if (data.automation_areas && data.automation_areas.length > 0) fields.automation_areas = data.automation_areas.join(', ');
+
+  // Payment
+  if (data.payment_status) fields.payment_status = data.payment_status;
+  if (data.transaction_id) fields.transaction_id = data.transaction_id;
+
+  return fields;
+}
+
+/**
+ * Create a new Contact record (called after Step 3).
  * Returns the record ID for future updates.
  */
 export async function createOnboardingRecord(
@@ -30,28 +125,60 @@ export async function createOnboardingRecord(
   }
 
   try {
-    const mutation = plugin.mutation().switchTo(MODEL_NAME);
-    const record = mutation.createOne({
-      website_url: data.website_url || '',
-      slug: data.slug || '',
-      company_trading_name: data.company_trading_name || '',
-      company_legal_name: data.company_legal_name || '',
-      email: data.email || '',
-      sms_number: data.sms_number || '',
-      contact_first_name: data.contact_first_name || '',
-      contact_last_name: data.contact_last_name || '',
-      country: data.country || 'Australia',
-      logo_url: data.logo_url || '',
-      color1: data.color1 || '',
-      color2: data.color2 || '',
-      initial_plan: data.initial_plan || 'essentials',
-      website_fetched: data.websiteFetched ? 'true' : 'false',
-      status: 'in_progress',
-      created_at: new Date().toISOString(),
-    });
+    const fields = buildFieldMap(data);
+    fields.onboarding_status = 'In Progress';
+    console.log('[VitalStats] Creating contact with fields:', fields);
 
-    const result = await mutation.execute(true).toPromise() as Record<string, unknown>;
-    const id = (record as Record<string, unknown>)?.id || result?.id;
+    const model = plugin.switchTo(MODEL_NAME);
+    if (!model) {
+      console.error('[VitalStats] switchTo returned undefined for', MODEL_NAME);
+      return null;
+    }
+
+    const mutation = model.mutation();
+    const record = mutation.createOne(fields);
+    const result = await mutation.execute(true).toPromise();
+
+    if ((result as any)?.isCancelling) {
+      console.error('[VitalStats] Create mutation was cancelled');
+      return null;
+    }
+
+    // Debug: inspect what createOne actually returns
+    console.log('[VitalStats] record object:', record);
+    console.log('[VitalStats] record type:', typeof record);
+    console.log('[VitalStats] record keys:', record ? Object.keys(record) : 'null');
+    console.log('[VitalStats] record.id:', (record as any)?.id);
+    console.log('[VitalStats] execute result:', result);
+
+    // Try to get ID from the record object
+    let id = (record as any)?.id;
+
+    // Fallback: query for the record we just created using a unique field
+    if (!id && data.email) {
+      console.log('[VitalStats] ID not on record, querying by email:', data.email);
+      try {
+        const queryResult = await model
+          .query()
+          .select(['id'])
+          .where('email', '=', data.email)
+          .limit(1)
+          .fetchAllRecords()
+          .pipe(window.toMainInstance(true))
+          .toPromise();
+        console.log('[VitalStats] Query result:', queryResult);
+        if (queryResult) {
+          const records = Object.values(queryResult);
+          if (records.length > 0) {
+            id = (records[0] as any)?.id;
+          }
+        }
+      } catch (queryErr) {
+        console.error('[VitalStats] Fallback query failed:', queryErr);
+      }
+    }
+
+    console.log('[VitalStats] Contact created, final id:', id);
     return id ? String(id) : null;
   } catch (err) {
     console.error('[VitalStats] Failed to create record:', err);
@@ -60,92 +187,54 @@ export async function createOnboardingRecord(
 }
 
 /**
- * Update an existing onboarding record with plan/tech data (after Step 6).
+ * Update the Contact record with all data collected so far.
+ * Called at key save points — each save is comprehensive so
+ * no data is lost if an earlier save was missed.
  */
-export async function updatePlanSelection(
+export async function updateOnboardingRecord(
   recordId: string,
   data: OnboardingData,
 ): Promise<void> {
   const plugin = getPlugin();
-  if (!plugin || !recordId) return;
-
-  try {
-    const mutation = plugin.mutation().switchTo(MODEL_NAME);
-    mutation.update({ id: recordId }, {
-      technical_level: data.technical_level || '',
-      workflow_volume: data.workflow_volume || '',
-      recommended_plan: data.recommended_plan || '',
-      final_plan: data.final_plan || data.recommended_plan || data.initial_plan,
-      updated_at: new Date().toISOString(),
-    });
-    await mutation.execute(true).toPromise();
-  } catch (err) {
-    console.error('[VitalStats] Failed to update plan selection:', err);
+  if (!plugin) {
+    console.warn('[VitalStats] SDK not ready — skipping update');
+    return;
   }
-}
-
-/**
- * Update with add-on selections and cost summary (after Step 13).
- */
-export async function updateAddons(
-  recordId: string,
-  data: OnboardingData,
-): Promise<void> {
-  const plugin = getPlugin();
-  if (!plugin || !recordId) return;
-
-  const costs = calculateCosts(data);
-  const activePlan = getActivePlan(data);
-
-  try {
-    const mutation = plugin.mutation().switchTo(MODEL_NAME);
-    mutation.update({ id: recordId }, {
-      billing: data.billing,
-      credential_setup: data.credential_setup || 'self',
-      ai_agent_setup: data.ai_agent_setup || 'self',
-      workflow_setup: data.workflow_setup || 'self',
-      has_openrouter: data.has_openrouter ? 'true' : 'false',
-      local_hosting: data.local_hosting ? 'true' : 'false',
-      website_hosting: data.website_hosting ? 'true' : 'false',
-      detected_cms: data.detected_cms || '',
-      active_plan: activePlan,
-      monthly_cost: String(costs.monthly),
-      onetime_cost: String(costs.oneTime),
-      updated_at: new Date().toISOString(),
-    });
-    await mutation.execute(true).toPromise();
-  } catch (err) {
-    console.error('[VitalStats] Failed to update add-ons:', err);
+  if (!recordId) {
+    console.warn('[VitalStats] No record ID — skipping update');
+    return;
   }
-}
-
-/**
- * Update with business profile data (after Step 15).
- */
-export async function updateBusinessProfile(
-  recordId: string,
-  data: OnboardingData,
-): Promise<void> {
-  const plugin = getPlugin();
-  if (!plugin || !recordId) return;
 
   try {
-    const mutation = plugin.mutation().switchTo(MODEL_NAME);
-    mutation.update({ id: recordId }, {
-      business_summary: data.business_summary || '',
-      team_size: data.team_size || '',
-      roles: data.roles.join(', '),
-      automation_areas: data.automation_areas.join(', '),
-      updated_at: new Date().toISOString(),
-    });
-    await mutation.execute(true).toPromise();
+    const fields = buildFieldMap(data);
+    fields.onboarding_status = 'In Progress';
+    console.log('[VitalStats] Updating contact', recordId, 'with fields:', Object.keys(fields));
+
+    const model = plugin.switchTo(MODEL_NAME);
+    if (!model) {
+      console.error('[VitalStats] switchTo returned undefined for', MODEL_NAME);
+      return;
+    }
+
+    const mutation = model.mutation();
+    mutation.update((q: any) =>
+      q.where('id', '=', Number(recordId)).set(fields)
+    );
+    const result = await mutation.execute(true).toPromise();
+
+    if ((result as any)?.isCancelling) {
+      console.error('[VitalStats] Update mutation was cancelled for id:', recordId);
+    } else {
+      console.log('[VitalStats] Contact updated successfully, id:', recordId);
+    }
   } catch (err) {
-    console.error('[VitalStats] Failed to update business profile:', err);
+    console.error('[VitalStats] Failed to update record:', err);
   }
 }
 
 /**
  * Final update on completion (Step 16).
+ * Saves all data + marks the record as completed.
  */
 export async function markComplete(
   recordId: string,
@@ -160,13 +249,29 @@ export async function markComplete(
     data.workflow_setup === 'assisted';
 
   try {
-    const mutation = plugin.mutation().switchTo(MODEL_NAME);
-    mutation.update({ id: recordId }, {
-      status: 'completed',
-      needs_booking: needsBooking ? 'true' : 'false',
-      completed_at: new Date().toISOString(),
-    });
-    await mutation.execute(true).toPromise();
+    const fields = buildFieldMap(data);
+    fields.onboarding_status = 'Completed';
+    fields.needs_booking = needsBooking;
+    fields.onboarding_completed_at = Math.floor(Date.now() / 1000);
+    console.log('[VitalStats] Marking complete', recordId, 'with fields:', Object.keys(fields));
+
+    const model = plugin.switchTo(MODEL_NAME);
+    if (!model) {
+      console.error('[VitalStats] switchTo returned undefined for', MODEL_NAME);
+      return;
+    }
+
+    const mutation = model.mutation();
+    mutation.update((q: any) =>
+      q.where('id', '=', Number(recordId)).set(fields)
+    );
+    const result = await mutation.execute(true).toPromise();
+
+    if ((result as any)?.isCancelling) {
+      console.error('[VitalStats] Mark complete mutation was cancelled for id:', recordId);
+    } else {
+      console.log('[VitalStats] Contact marked complete, id:', recordId);
+    }
   } catch (err) {
     console.error('[VitalStats] Failed to mark complete:', err);
   }
@@ -187,9 +292,8 @@ export async function checkSlugAvailability(slug: string): Promise<boolean> {
     const model = plugin.switchTo(MODEL_NAME);
     const result = await model
       .query()
-      .select(['slug'])
-      .where('slug', '=', slug)
-      .where('status', '!=', 'abandoned')
+      .select(['subdomain_slug'])
+      .where('subdomain_slug', '=', slug)
       .limit(1)
       .fetchAllRecords()
       .pipe(window.toMainInstance(true))

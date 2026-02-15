@@ -1,0 +1,135 @@
+{
+  "name": "Onboarding Website Scraper",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "onboarding-scraper",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "a1b2c3d4-1111-4000-8000-000000000001",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 300],
+      "webhookId": "onboarding-scraper"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.body.url.startsWith('http') ? $json.body.url : 'https://' + $json.body.url }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": false,
+              "responseFormat": "text"
+            }
+          },
+          "redirect": {
+            "redirect": {
+              "followRedirects": true,
+              "maxRedirects": 5
+            }
+          },
+          "timeout": 15000
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (compatible; AwesomateBot/1.0; +https://awesomate.ai)"
+            }
+          ]
+        }
+      },
+      "id": "a1b2c3d4-2222-4000-8000-000000000002",
+      "name": "Fetch Page",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [480, 300],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the URL from the webhook body\nconst webhookData = $('Webhook').first().json;\nconst url = webhookData.body?.url || '';\n\n// Get HTML from HTTP Request response\nconst httpOutput = $input.first().json;\nconst html = httpOutput?.data || httpOutput?.body || (typeof httpOutput === 'string' ? httpOutput : '');\n\n// If we didn't get HTML, return basic domain fallback\nif (!html || typeof html !== 'string' || html.length < 100) {\n  const domain = url.replace(/https?:\\/\\//, '').replace(/www\\./, '').split('/')[0];\n  const name = domain.split('.')[0];\n  const prettyName = name.charAt(0).toUpperCase() + name.slice(1);\n  return [{\n    json: {\n      company_name: prettyName,\n      email: `hello@${domain}`,\n      summary: `${prettyName} — further details will be populated during the onboarding session.`,\n    }\n  }];\n}\n\n// --- Helper: decode HTML entities ---\nfunction decodeEntities(str) {\n  if (!str) return '';\n  return str\n    .replace(/&amp;/g, '&')\n    .replace(/&lt;/g, '<')\n    .replace(/&gt;/g, '>')\n    .replace(/&quot;/g, String.fromCharCode(34))\n    .replace(/&#039;/g, String.fromCharCode(39))\n    .replace(/&#x27;/g, String.fromCharCode(39))\n    .replace(/&#39;/g, String.fromCharCode(39))\n    .replace(/&apos;/g, String.fromCharCode(39))\n    .replace(/&#x2F;/g, '/')\n    .replace(/&#(\\d+);/g, function(m, c) { return String.fromCharCode(Number(c)); })\n    .replace(/&#x([0-9a-fA-F]+);/g, function(m, c) { return String.fromCharCode(parseInt(c, 16)); });\n}\n\n// --- Helper: extract meta tag content ---\nfunction getMeta(html, property, attr) {\n  attr = attr || 'property';\n  const r1 = new RegExp(`<meta[^>]+${attr}=[\\\"']${property}[\\\"'][^>]+content=[\\\"']([^\\\"']+)[\\\"']`, 'i');\n  const r2 = new RegExp(`<meta[^>]+content=[\\\"']([^\\\"']+)[\\\"'][^>]+${attr}=[\\\"']${property}[\\\"']`, 'i');\n  return decodeEntities((html.match(r1) || [])[1] || (html.match(r2) || [])[1] || '');\n}\n\n// --- Company Name ---\nconst ogSiteName = getMeta(html, 'og:site_name');\nconst ogTitle = getMeta(html, 'og:title');\nconst titleTag = decodeEntities((html.match(/<title[^>]*>([^<]+)<\\/title>/i) || [])[1] || '');\nlet companyName = (ogSiteName || ogTitle || titleTag).trim();\ncompanyName = companyName\n  .replace(/\\s*[|]\\s*.+$/, '')\n  .replace(/\\s*[\\u2013\\u2014]\\s*.+$/, '')\n  .replace(/\\s+-\\s+.+$/, '')\n  .trim();\n\nif (!companyName) {\n  const domain = url.replace(/https?:\\/\\//, '').replace(/www\\./, '').split('/')[0];\n  companyName = domain.split('.')[0];\n  companyName = companyName.charAt(0).toUpperCase() + companyName.slice(1);\n}\n\n// --- Email ---\nconst mailtoMatch = html.match(/href=[\\\"']mailto:([^\\\"'?]+)/i);\nlet email = mailtoMatch ? mailtoMatch[1] : '';\nif (!email) {\n  const emailMatch = html.match(/[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}/);\n  if (emailMatch) email = emailMatch[0];\n}\n\n// --- Phone ---\nconst telMatch = html.match(/href=[\\\"']tel:([^\\\"']+)/i);\nconst phone = telMatch ? telMatch[1] : '';\n\n// --- Logo ---\nconst ogImage = getMeta(html, 'og:image');\nlet logoUrl = ogImage || '';\nif (!logoUrl) {\n  const logoMatch = html.match(/<img[^>]+src=[\\\"']([^\\\"']*logo[^\\\"']*?)[\\\"']/i);\n  if (logoMatch) logoUrl = logoMatch[1];\n}\nif (logoUrl && !logoUrl.startsWith('http')) {\n  try { logoUrl = new URL(logoUrl, url).href; } catch (e) {}\n}\n\n// --- Colors: extract hex colors from CSS ---\nconst colorMap = {};\nconst hexRegex = /#([0-9a-fA-F]{6})\\b/g;\nlet match;\nwhile ((match = hexRegex.exec(html)) !== null) {\n  const hex = `#${match[1].toLowerCase()}`;\n  const r = parseInt(hex.slice(1, 3), 16);\n  const g = parseInt(hex.slice(3, 5), 16);\n  const b = parseInt(hex.slice(5, 7), 16);\n  const brightness = (r * 299 + g * 587 + b * 114) / 1000;\n  if (brightness < 20 || brightness > 235) continue;\n  if (Math.max(r, g, b) - Math.min(r, g, b) < 30) continue;\n  colorMap[hex] = (colorMap[hex] || 0) + 1;\n}\nconst colors = Object.entries(colorMap)\n  .sort((a, b) => b[1] - a[1])\n  .slice(0, 2)\n  .map(function(e) { return e[0]; });\n\n// --- Summary ---\nconst summary = getMeta(html, 'description', 'name') || getMeta(html, 'og:description');\n\n// --- CMS Detection ---\nlet cms = null;\nif (html.includes('wp-content') || html.includes('wp-includes')) cms = 'WordPress';\nelse if (html.includes('cdn.shopify.com') || html.includes('Shopify.theme')) cms = 'Shopify';\nelse if (html.includes('wix.com') || html.includes('X-Wix')) cms = 'Wix';\nelse if (html.includes('squarespace.com') || html.includes('sqs-')) cms = 'Squarespace';\nelse if (html.includes('webflow.com') || html.includes('w-nav')) cms = 'Webflow';\nelse if (html.includes('__next')) cms = 'Next.js';\nelse if (html.includes('framer.com') || html.includes('framer-')) cms = 'Framer';\n\n// --- Country Detection ---\n// Domain TLD is more reliable than HTML lang (WordPress defaults to en-US)\nlet country = null;\nif (url.includes('.com.au') || url.includes('.au/')) country = 'Australia';\nelse if (url.includes('.co.nz') || url.includes('.nz/')) country = 'New Zealand';\nelse if (url.includes('.co.uk') || url.includes('.uk/')) country = 'United Kingdom';\nelse if (url.includes('.ca/')) country = 'Canada';\nelse if (url.includes('.com.sg') || url.includes('.sg/')) country = 'Singapore';\nelse if (url.includes('.in/') || url.includes('.co.in')) country = 'India';\nelse if (url.includes('.de/')) country = 'Germany';\nelse {\n  const langMatch = html.match(/<html[^>]+lang=[\\\"']([^\\\"']+)[\\\"']/i);\n  const lang = langMatch ? langMatch[1].toLowerCase() : '';\n  if (lang.includes('en-au')) country = 'Australia';\n  else if (lang.includes('en-gb')) country = 'United Kingdom';\n  else if (lang.includes('en-nz')) country = 'New Zealand';\n}\n\n// --- Return structured data ---\nconst result = {};\nif (companyName) result.company_name = companyName;\nif (email) result.email = email;\nif (phone) result.phone = phone;\nif (logoUrl) result.logo_url = logoUrl;\nif (colors[0]) result.color1 = colors[0];\nif (colors[1]) result.color2 = colors[1];\nif (summary) result.summary = summary;\nif (cms) result.cms = cms;\nif (country) result.country = country;\n\nreturn [{ json: result }];"
+      },
+      "id": "a1b2c3d4-3333-4000-8000-000000000003",
+      "name": "Extract Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [700, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type"
+              }
+            ]
+          }
+        }
+      },
+      "id": "a1b2c3d4-4444-4000-8000-000000000004",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [920, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Fetch Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Page": {
+      "main": [
+        [
+          {
+            "node": "Extract Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Data": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0
+}

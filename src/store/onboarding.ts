@@ -4,10 +4,7 @@ import type { OnboardingData } from '../types/onboarding';
 import { recommendPlan } from '../lib/plans';
 import {
   createOnboardingRecord,
-  updatePlanSelection,
-  updateAddons,
-  updateBusinessProfile,
-  markComplete,
+  updateOnboardingRecord,
 } from '../lib/api';
 
 interface OnboardingStore {
@@ -58,6 +55,10 @@ const initialData: OnboardingData = {
   roles: [],
   automation_areas: [],
 
+  payment_status: null,
+  transaction_id: null,
+  payment_error: null,
+
   vitalsync_record_id: null,
   completed_at: null,
 };
@@ -67,32 +68,31 @@ const initialData: OnboardingData = {
  * Runs in the background — never blocks the UI.
  */
 async function autoSave(prevStep: number, nextStep: number, data: OnboardingData): Promise<string | null> {
+  console.log(`[AutoSave] Step ${prevStep} → ${nextStep}, record_id: ${data.vitalsync_record_id || 'none'}`);
+
   // Step 3 → 4: Create record with business details
   if (prevStep === 3 && nextStep === 4 && !data.vitalsync_record_id) {
+    console.log('[AutoSave] Creating new contact record');
     const id = await createOnboardingRecord(data);
     return id;
   }
 
-  if (!data.vitalsync_record_id) return null;
-
-  // Step 6 → 7: Save plan selection
-  if (prevStep === 6 && nextStep === 7) {
-    updatePlanSelection(data.vitalsync_record_id, data);
+  if (!data.vitalsync_record_id) {
+    console.log('[AutoSave] No record ID yet — skipping update');
+    return null;
   }
 
-  // Step 13 → 14: Save add-on selections + cost summary
-  if (prevStep === 13 && nextStep === 14) {
-    updateAddons(data.vitalsync_record_id, data);
-  }
-
-  // Step 15 → 16: Save business profile
-  if (prevStep === 15 && nextStep === 16) {
-    updateBusinessProfile(data.vitalsync_record_id, data);
-  }
-
-  // Arriving at Step 16: Mark complete
-  if (nextStep === 16) {
-    markComplete(data.vitalsync_record_id, data);
+  // Key save points: comprehensive update with all data collected so far
+  // Step 6→7: after plan selection
+  // Step 13→14: after add-ons
+  // Step 15→16: save all data before payment screen (markComplete is called after payment succeeds in Step16)
+  if (
+    (prevStep === 6 && nextStep === 7) ||
+    (prevStep === 13 && nextStep === 14) ||
+    (prevStep === 15 && nextStep === 16)
+  ) {
+    console.log('[AutoSave] Updating record at key save point');
+    updateOnboardingRecord(data.vitalsync_record_id, data);
   }
 
   return null;

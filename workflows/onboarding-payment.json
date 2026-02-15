@@ -1,0 +1,156 @@
+{
+  "name": "Onboarding Payment Processor",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "onboarding-payment",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "pay-1111-4000-8000-000000000001",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 300],
+      "webhookId": "onboarding-payment"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build the Ontraport processManual payload from webhook data\nconst input = $input.first().json;\nconst body = input.body || input;\n\nconst contactId = body.contact_id;\nconst products = body.products || [];\nconst payer = body.payer || {};\nconst externalOrderId = body.external_order_id || `AWE-${contactId}-${Date.now()}`;\n\nif (!contactId || !payer.ccnumber) {\n  return [{ json: { error: true, message: 'Missing contact_id or card details' } }];\n}\n\n// Build the Ontraport transaction payload\nconst payload = {\n  contact_id: contactId,\n  chargeNow: 'chargeNow',\n  external_order_id: externalOrderId,\n  invoice_template: 1,\n  gateway_id: 1,\n  offer: {\n    products: products,\n    hasTaxes: false,\n    hasShipping: false,\n    send_recurring_invoice: true\n  },\n  billing_address: {\n    address: '',\n    address2: '',\n    city: '',\n    state: '',\n    zip: '',\n    country: 'AU'\n  },\n  payer: {\n    ccnumber: payer.ccnumber,\n    code: payer.code,\n    expire_month: payer.expire_month,\n    expire_year: payer.expire_year\n  }\n};\n\nreturn [{ json: { payload, hasError: false } }];"
+      },
+      "id": "pay-2222-4000-8000-000000000002",
+      "name": "Build Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.ontraport.com/1/transaction/processManual",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Api-Appid",
+              "value": "2_20316_ZYDEWASbF"
+            },
+            {
+              "name": "Api-Key",
+              "value": "bCgaiS79MKxiks8"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.payload) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "pay-3333-4000-8000-000000000003",
+      "name": "Ontraport Payment",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [700, 300],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse the Ontraport response and return success/failure\nconst input = $input.first().json;\n\n// Check if Build Payload reported an error\nconst buildPayload = $('Build Payload').first().json;\nif (buildPayload.hasError || buildPayload.error) {\n  return [{ json: { success: false, error: buildPayload.message || 'Invalid payment data' } }];\n}\n\n// Check HTTP response\nconst statusCode = input.statusCode || input.code || 200;\nconst data = input.data || input;\n\n// Ontraport returns result_code 0 for success\nif (data.result_code === 0 || data.code === 0) {\n  return [{ json: {\n    success: false,\n    error: data.message || data.result_message || 'Payment was declined. Please check your card details and try again.'\n  }}];\n}\n\n// Success\nconst transactionId = data.id || data.transaction_id || data.invoice_id || '';\nreturn [{ json: {\n  success: true,\n  transaction_id: String(transactionId),\n  message: 'Payment processed successfully'\n}}];"
+      },
+      "id": "pay-4444-4000-8000-000000000004",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [920, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type"
+              }
+            ]
+          }
+        }
+      },
+      "id": "pay-5555-4000-8000-000000000005",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1140, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Build Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Payload": {
+      "main": [
+        [
+          {
+            "node": "Ontraport Payment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ontraport Payment": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Response": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0
+}

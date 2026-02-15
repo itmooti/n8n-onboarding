@@ -6,6 +6,8 @@ services:
       args:
         VITE_VITALSYNC_API_KEY: ${VITE_VITALSYNC_API_KEY}
         VITE_VITALSYNC_SLUG: ${VITE_VITALSYNC_SLUG}
+        VITE_SCRAPER_WEBHOOK_URL: ${VITE_SCRAPER_WEBHOOK_URL}
+        VITE_PAYMENT_WEBHOOK_URL: ${VITE_PAYMENT_WEBHOOK_URL}
     ports:
       - "3050:80"
     restart: unless-stopped

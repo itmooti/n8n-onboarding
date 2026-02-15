@@ -1,9 +1,31 @@
 import { useOnboardingStore } from '../store/onboarding';
-import { StepHeading, Input, ColorPicker } from '../components/ui';
+import { StepHeading, Input, Select, ColorPicker } from '../components/ui';
 import { NavButtons } from '../components/layout';
+import { useGeoDetect } from '../hooks/useGeoDetect';
+import { COUNTRIES, getPhonePrefix, isOnlyPrefix } from '../lib/countries';
+
+const countryOptions = COUNTRIES.map((c) => ({
+  value: c.name,
+  label: `${c.flag}  ${c.name}`,
+}));
 
 export function Step02BusinessDetails() {
   const { data, update, next, prev } = useOnboardingStore();
+
+  // Auto-detect country from IP (skips if website scraper already set it)
+  useGeoDetect();
+
+  const handleCountryChange = (country: string) => {
+    const newPrefix = getPhonePrefix(country);
+    // Auto-update phone prefix if the field is empty or only contains a prefix
+    if (isOnlyPrefix(data.sms_number)) {
+      update({ country, sms_number: newPrefix + ' ' });
+    } else {
+      update({ country });
+    }
+  };
+
+  const phonePlaceholder = `${getPhonePrefix(data.country)} 400 000 000`;
 
   return (
     <>
@@ -82,11 +104,17 @@ export function Step02BusinessDetails() {
           type="email"
           required
         />
+        <Select
+          label="Country"
+          value={data.country}
+          onChange={handleCountryChange}
+          options={countryOptions}
+        />
         <Input
           label="SMS / Mobile Number"
           value={data.sms_number}
           onChange={(v) => update({ sms_number: v })}
-          placeholder="+61 400 000 000"
+          placeholder={phonePlaceholder}
           type="tel"
         />
       </div>

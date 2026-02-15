@@ -42,11 +42,12 @@ function parseHtml(html: string, url: string): ScrapedData {
   const ogTitle = doc.querySelector('meta[property="og:title"]')?.getAttribute('content');
   const titleTag = doc.querySelector('title')?.textContent;
   let companyName = ogSiteName || ogTitle || titleTag || '';
-  // Clean common suffixes
+  // Clean taglines / suffixes after separators (e.g. "MCG Quantity Surveyors - We do depreciation differently")
+  // og:site_name is usually clean already; title tags almost always use "Name - Tagline" format
   companyName = companyName
-    .replace(/\s*[-–|]\s*Home.*$/i, '')
-    .replace(/\s*[-–|]\s*Welcome.*$/i, '')
-    .replace(/\s*[-–|]\s*Official.*$/i, '')
+    .replace(/\s*[|]\s*.+$/, '')       // "Name | Tagline"
+    .replace(/\s*[–—]\s*.+$/, '')      // "Name – Tagline" or "Name — Tagline"
+    .replace(/\s+-\s+.+$/, '')         // "Name - Tagline" (space-dash-space to avoid "T-Mobile")
     .trim();
 
   // Email: look for mailto: links, then scan text
@@ -95,7 +96,7 @@ function parseHtml(html: string, url: string): ScrapedData {
   const cms = detectCMS(html, doc);
 
   // Country detection from HTML lang, meta, or content
-  const country = detectCountry(html, doc);
+  const country = detectCountry(html, doc, url);
 
   return {
     company_name: companyName || undefined,
@@ -161,13 +162,24 @@ function detectCMS(html: string, doc: Document): string | null {
   return null;
 }
 
-function detectCountry(html: string, doc: Document): string | null {
+function detectCountry(_html: string, doc: Document, url: string): string | null {
+  // Domain TLD is the most reliable indicator — check first.
+  // HTML lang is often a CMS default (WordPress always uses en-US).
+  if (url.includes('.com.au') || url.includes('.au/')) return 'Australia';
+  if (url.includes('.co.nz') || url.includes('.nz/')) return 'New Zealand';
+  if (url.includes('.co.uk') || url.includes('.uk/')) return 'United Kingdom';
+  if (url.includes('.ca/')) return 'Canada';
+  if (url.includes('.com.sg') || url.includes('.sg/')) return 'Singapore';
+  if (url.includes('.in/') || url.includes('.co.in')) return 'India';
+  if (url.includes('.de/')) return 'Germany';
+
+  // Fall back to HTML lang attribute (less reliable)
   const lang = doc.documentElement.getAttribute('lang')?.toLowerCase() || '';
   if (lang.includes('en-au')) return 'Australia';
   if (lang.includes('en-gb')) return 'United Kingdom';
-  if (lang.includes('en-us')) return 'United States';
   if (lang.includes('en-nz')) return 'New Zealand';
-  if (html.includes('.com.au') || html.includes('.au/')) return 'Australia';
+  // Skip en-us — too many sites use it as a default regardless of location
+
   return null;
 }
 
