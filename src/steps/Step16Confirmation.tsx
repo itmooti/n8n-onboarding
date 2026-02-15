@@ -7,7 +7,7 @@ import { buildOrderLineItems, calculateCheckoutTotals } from '../lib/products';
 import { usePayment } from '../hooks/usePayment';
 import { markComplete } from '../lib/api';
 import { COUNTRIES } from '../lib/countries';
-import { Loader2, CreditCard, Lock, MapPin, AlertCircle, ShieldCheck, RefreshCw } from 'lucide-react';
+import { Loader2, CreditCard, Lock, MapPin, AlertCircle, ShieldCheck, RefreshCw, CheckCircle2, Calendar } from 'lucide-react';
 
 /** Format card number with spaces every 4 digits */
 function formatCardNumber(value: string): string {
@@ -393,9 +393,9 @@ export function Step16Confirmation() {
       {/* Security & trust signals */}
       <div className="mb-5">
         {/* Eway site seal */}
-        <div className="flex justify-center mb-4">
+        <div className="flex justify-center mb-4" id="eWAYBlock">
           <a
-            href="http://www.eway.com.au/secure-site-seal?i=12&s=7&pid=7b219f54-20a0-48d5-ba3c-4180844729b3&theme=0"
+            href="https://www.eway.com.au/secure-site-seal?i=12&s=7&pid=7b219f54-20a0-48d5-ba3c-4180844729b3&theme=0"
             title="Eway Payment Gateway"
             target="_blank"
             rel="nofollow noreferrer"
@@ -403,6 +403,7 @@ export function Step16Confirmation() {
             <img
               alt="Eway Payment Gateway"
               src="https://www.eway.com.au/developer/payment-code/verified-seal.php?img=12&size=7&pid=7b219f54-20a0-48d5-ba3c-4180844729b3&theme=0"
+              style={{ maxHeight: '40px' }}
             />
           </a>
         </div>
@@ -452,65 +453,123 @@ export function Step16Confirmation() {
   );
 }
 
-/** Post-payment celebration view (original Step 16 content) */
+/** Post-payment confirmation view */
 function ConfirmationView() {
   const { data } = useOnboardingStore();
 
   const activePlan = getActivePlan(data);
   const plan = PLANS[activePlan];
-  const { recurring, period } = calculateCheckoutTotals(data);
-  const needsBooking =
+  const { dueToday, recurring, period } = calculateCheckoutTotals(data);
+
+  // Show booking CTA if they purchased any $100 assisted setup add-on
+  const hasAssistedSetup =
     data.credential_setup === 'assisted' ||
     data.ai_agent_setup === 'assisted' ||
     data.workflow_setup === 'assisted';
 
-  const handleCTA = () => {
-    window.location.href = BOOKING_URL;
-  };
+  // Build list of purchased add-ons for display
+  const setupAddons: string[] = [];
+  if (data.credential_setup === 'assisted') setupAddons.push('Credential Setup');
+  if (data.ai_agent_setup === 'assisted') setupAddons.push('AI Agent Setup');
+  if (data.workflow_setup === 'assisted') setupAddons.push('Workflow Setup');
 
   return (
-    <div className="text-center py-3 sm:py-5">
-      <div className="text-[48px] sm:text-[64px] mb-3 sm:mb-4">&#x1F389;</div>
+    <div className="py-3 sm:py-5">
+      {/* Success banner */}
+      <div className="bg-green-50 border-2 border-green-200 rounded-[16px] sm:rounded-[20px] p-5 sm:p-7 mb-6 text-center">
+        <CheckCircle2 size={48} className="text-green-500 mx-auto mb-3" />
+        <h2 className="text-[22px] sm:text-[28px] font-extrabold text-navy m-0 font-heading leading-[1.15]">
+          Payment Successful!
+        </h2>
+        <p className="text-green-700 text-sm mt-2 font-medium">
+          Your payment of AU${dueToday.toLocaleString()} has been processed successfully.
+        </p>
+        {data.transaction_id && (
+          <p className="text-gray-400 text-xs mt-1 font-mono">
+            Transaction ID: {data.transaction_id}
+          </p>
+        )}
+      </div>
 
-      <h2 className="text-[24px] sm:text-[32px] font-extrabold text-navy m-0 font-heading leading-[1.15]">
-        {needsBooking
-          ? "Payment successful! Let's book your first session."
-          : 'Welcome to Awesomate!'}
-      </h2>
+      {/* What happens next */}
+      <div className="bg-white border-2 border-gray-border rounded-[16px] sm:rounded-[20px] p-5 sm:p-7 mb-6">
+        <h3 className="text-[16px] font-bold text-navy mb-3 font-heading">What happens next?</h3>
+        <ul className="space-y-2.5 text-sm text-gray-600">
+          <li className="flex gap-2.5 items-start">
+            <CheckCircle2 size={16} className="text-green-500 mt-0.5 flex-shrink-0" />
+            <span>Your n8n workspace at <strong className="text-accent font-mono text-xs">{data.slug}.awesomate.io</strong> is being provisioned</span>
+          </li>
+          <li className="flex gap-2.5 items-start">
+            <CheckCircle2 size={16} className="text-green-500 mt-0.5 flex-shrink-0" />
+            <span>You'll receive a confirmation email at <strong>{data.email}</strong></span>
+          </li>
+          <li className="flex gap-2.5 items-start">
+            <CheckCircle2 size={16} className="text-green-500 mt-0.5 flex-shrink-0" />
+            <span>Your instance will be ready within the hour</span>
+          </li>
+        </ul>
+      </div>
 
-      <p className="text-gray-500 text-sm sm:text-base mt-3 leading-relaxed max-w-[480px] mx-auto">
-        {needsBooking
-          ? `Click below to choose a time that works for you. We'll send a confirmation to ${data.email}.`
-          : `Your n8n instance is being provisioned at ${data.slug}.awesomate.io — you'll receive an email when it's ready (usually within the hour).`}
-      </p>
-
-      {/* Summary card */}
-      <div className="bg-white border-2 border-gray-border rounded-2xl p-4 sm:p-6 max-w-[400px] mx-auto mt-5 sm:mt-7 text-left">
-        <div className="flex justify-between mb-2">
-          <span className="text-gray-400 text-[12px] uppercase tracking-[0.08em]">Plan</span>
-          <span className="font-bold text-sm text-navy">{plan.name}</span>
-        </div>
-        <div className="flex justify-between mb-2">
-          <span className="text-gray-400 text-[12px] uppercase tracking-[0.08em]">
-            {period === 'year' ? 'Yearly' : 'Monthly'}
-          </span>
-          <span className="font-bold text-sm text-navy">
-            AU${recurring.toLocaleString()}/{period === 'year' ? 'yr' : 'mo'}
-          </span>
-        </div>
-        <div className="flex justify-between mb-2">
-          <span className="text-gray-400 text-[12px] uppercase tracking-[0.08em]">Workspace</span>
-          <span className="font-bold text-xs sm:text-sm text-accent font-mono truncate max-w-[180px]">
-            {data.slug}.awesomate.io
-          </span>
+      {/* Order summary */}
+      <div className="bg-white border-2 border-gray-border rounded-[16px] sm:rounded-[20px] p-5 sm:p-7 mb-6">
+        <h3 className="text-[16px] font-bold text-navy mb-3 font-heading">Order Summary</h3>
+        <div className="space-y-2">
+          <div className="flex justify-between">
+            <span className="text-gray-400 text-[12px] uppercase tracking-[0.08em]">Plan</span>
+            <span className="font-bold text-sm text-navy">{plan.name}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-400 text-[12px] uppercase tracking-[0.08em]">Billing</span>
+            <span className="font-bold text-sm text-navy">
+              AU${recurring.toLocaleString()}/{period === 'year' ? 'yr' : 'mo'}
+            </span>
+          </div>
+          {setupAddons.length > 0 && (
+            <div className="flex justify-between">
+              <span className="text-gray-400 text-[12px] uppercase tracking-[0.08em]">Add-ons</span>
+              <span className="font-bold text-sm text-navy">{setupAddons.join(', ')}</span>
+            </div>
+          )}
+          <div className="flex justify-between pt-2 border-t border-gray-border">
+            <span className="text-gray-400 text-[12px] uppercase tracking-[0.08em]">Paid Today</span>
+            <span className="font-extrabold text-navy font-heading">AU${dueToday.toLocaleString()}</span>
+          </div>
         </div>
       </div>
 
-      <div className="mt-8">
-        <Button onClick={handleCTA} className="text-[16px] px-12 py-4">
-          {needsBooking ? 'Book My Session' : 'Go to Dashboard'}
-        </Button>
-      </div>
+      {/* Booking CTA for assisted setup add-ons */}
+      {hasAssistedSetup && (
+        <div
+          className="rounded-[16px] sm:rounded-[20px] p-5 sm:p-7 mb-6 text-center"
+          style={{
+            background: 'linear-gradient(135deg, #0a0e1a 0%, #0f1128 60%, #161a38 100%)',
+          }}
+        >
+          <Calendar size={32} className="text-white/80 mx-auto mb-3" />
+          <h3 className="text-[18px] sm:text-[20px] font-bold text-white mb-2 font-heading">
+            Book Your Setup Session
+          </h3>
+          <p className="text-white/60 text-sm mb-4 max-w-[380px] mx-auto">
+            You've purchased {setupAddons.length === 1 ? setupAddons[0] : `${setupAddons.length} setup add-ons`}.
+            Book a time with our team to get everything configured for you.
+          </p>
+          <Button
+            onClick={() => { window.location.href = BOOKING_URL; }}
+            className="text-[16px] px-10 py-4"
+          >
+            Book My Session
+          </Button>
+        </div>
+      )}
+
+      {/* Non-booking fallback CTA */}
+      {!hasAssistedSetup && (
+        <div className="text-center">
+          <p className="text-gray-500 text-sm mb-4">
+            We'll email you when your workspace is ready. In the meantime, you can close this page.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
