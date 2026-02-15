@@ -116,13 +116,14 @@ export function Step02BusinessDetails() {
           onChange={(v) => update({ sms_number: v })}
           placeholder={phonePlaceholder}
           type="tel"
+          required
         />
       </div>
 
       <NavButtons
         onBack={prev}
         onNext={next}
-        nextDisabled={!data.company_trading_name || !data.email}
+        nextDisabled={!data.company_trading_name || !data.email || !data.sms_number || isOnlyPrefix(data.sms_number)}
       />
     </>
   );
