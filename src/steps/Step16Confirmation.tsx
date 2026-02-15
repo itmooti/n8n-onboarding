@@ -584,7 +584,7 @@ function CheckoutFooter() {
         <img
           src="/awesomate-logo.svg"
           alt="Awesomate"
-          className="h-[20px] w-auto grayscale opacity-30"
+          className="w-[90px] h-auto grayscale opacity-30"
         />
         <div className="text-gray-300 text-[11px] sm:text-[12px]">
           &copy; {new Date().getFullYear()} Awesomate.ai. All rights reserved.
