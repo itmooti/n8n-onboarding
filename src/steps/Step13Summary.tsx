@@ -46,38 +46,38 @@ export function Step13Summary() {
         subtitle="Review everything before we move to the final step."
       />
 
-      <div className="bg-white border-2 border-gray-border rounded-[20px] overflow-hidden">
+      <div className="bg-white border-2 border-gray-border rounded-[16px] sm:rounded-[20px] overflow-hidden">
         {/* Plan header */}
         <div
-          className="px-7 py-6 flex justify-between items-center"
+          className="px-4 sm:px-7 py-4 sm:py-6 flex justify-between items-center"
           style={{
             background: 'linear-gradient(135deg, #0a0e1a 0%, #0f1128 60%, #161a38 100%)',
           }}
         >
           <div>
-            <div className="text-white/50 text-[11px] font-bold uppercase tracking-[0.1em]">
+            <div className="text-white/50 text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.1em]">
               YOUR PLAN
             </div>
-            <div className="text-white text-[22px] font-extrabold font-heading">
+            <div className="text-white text-[18px] sm:text-[22px] font-extrabold font-heading">
               {plan.name}
             </div>
           </div>
           <div className="text-right">
-            <div className="text-[28px] font-extrabold font-heading accent-gradient-text">
+            <div className="text-[22px] sm:text-[28px] font-extrabold font-heading accent-gradient-text">
               AU${costs.planMonthly}
             </div>
             <div className="text-white/40 text-xs">/month</div>
           </div>
         </div>
 
-        <div className="px-7 py-5">
+        <div className="px-4 sm:px-7 py-4 sm:py-5">
           {/* Billing toggle */}
           <div className="flex gap-2 mb-5">
             {(['monthly', 'yearly'] as const).map((b) => (
               <button
                 key={b}
                 onClick={() => update({ billing: b })}
-                className={`px-5 py-2 rounded-[8px] border-none cursor-pointer font-bold text-[12px] font-sans uppercase tracking-[0.05em] transition-all ${
+                className={`px-3 sm:px-5 py-2 rounded-[8px] border-none cursor-pointer font-bold text-[11px] sm:text-[12px] font-sans uppercase tracking-[0.05em] transition-all ${
                   data.billing === b
                     ? 'bg-navy text-white'
                     : 'bg-gray-bg text-gray-500 hover:bg-gray-100'

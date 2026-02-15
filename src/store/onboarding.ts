@@ -148,13 +148,42 @@ export const useOnboardingStore = create<OnboardingStore>()(
   )
 );
 
-// Parse ?plan= query param on initial load
+/**
+ * Parse ?plan= query param on initial load.
+ * Accepts numeric (1-4) or plan key names from the pricing page CTAs.
+ *
+ * Mapping: 1=essentials, 2=support-plus, 3=pro, 4=embedded
+ */
+const PLAN_NUMBER_MAP: Record<string, OnboardingData['initial_plan']> = {
+  '1': 'essentials',
+  '2': 'support-plus',
+  '3': 'pro',
+  '4': 'embedded',
+};
+
+const VALID_PLAN_KEYS = ['essentials', 'support-plus', 'pro', 'embedded'];
+
 export function getInitialPlanFromURL(): void {
   const params = new URLSearchParams(window.location.search);
   const plan = params.get('plan');
-  if (plan && ['essentials', 'support-plus', 'pro', 'embedded'].includes(plan)) {
-    useOnboardingStore.getState().update({
+  if (!plan) return;
+
+  // Only apply on fresh sessions (step 1), not mid-flow refreshes
+  const store = useOnboardingStore.getState();
+  if (store.step > 1) return;
+
+  // Accept numeric ?plan=1 through ?plan=4
+  const mapped = PLAN_NUMBER_MAP[plan];
+  if (mapped) {
+    store.update({ initial_plan: mapped, final_plan: mapped });
+    return;
+  }
+
+  // Also accept plan key names (?plan=pro, ?plan=essentials, etc.)
+  if (VALID_PLAN_KEYS.includes(plan)) {
+    store.update({
       initial_plan: plan as OnboardingData['initial_plan'],
+      final_plan: plan as OnboardingData['initial_plan'],
     });
   }
 }

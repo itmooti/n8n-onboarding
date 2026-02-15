@@ -15,14 +15,14 @@ export function Step06PlanRecommendation() {
       <StepHeading title="Your Recommended Plan" />
 
       {/* Recommended plan card */}
-      <div className="relative bg-gradient-to-br from-accent/[0.04] to-accent-orange/[0.02] border-2 border-accent rounded-[20px] p-8 mb-5">
-        <div className="absolute -top-3 left-6 bg-gradient-to-br from-accent to-accent-orange text-white font-bold text-[11px] px-3.5 py-1 rounded-lg tracking-[0.08em] uppercase">
+      <div className="relative bg-gradient-to-br from-accent/[0.04] to-accent-orange/[0.02] border-2 border-accent rounded-[16px] sm:rounded-[20px] p-5 sm:p-8 mb-5">
+        <div className="absolute -top-3 left-4 sm:left-6 bg-gradient-to-br from-accent to-accent-orange text-white font-bold text-[10px] sm:text-[11px] px-3 py-1 rounded-lg tracking-[0.08em] uppercase">
           RECOMMENDED FOR YOU
         </div>
-        <h3 className="text-[28px] font-extrabold text-navy m-0 font-heading">
+        <h3 className="text-[22px] sm:text-[28px] font-extrabold text-navy m-0 font-heading">
           {rec.name}
         </h3>
-        <div className="text-4xl font-extrabold mt-2 font-heading accent-gradient-text">
+        <div className="text-3xl sm:text-4xl font-extrabold mt-2 font-heading accent-gradient-text">
           AU${rec.price}
           <span className="text-base text-gray-500 font-medium" style={{ WebkitTextFillColor: '#6b7280' }}>/mo</span>
         </div>

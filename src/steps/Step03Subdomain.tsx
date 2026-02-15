@@ -72,7 +72,7 @@ export function Step03Subdomain() {
       />
 
       {/* URL preview */}
-      <div className="bg-dark-bg rounded-[14px] px-5 py-3.5 mb-5 font-mono text-base text-white flex items-center border border-accent/15">
+      <div className="bg-dark-bg rounded-[12px] sm:rounded-[14px] px-4 sm:px-5 py-3 sm:py-3.5 mb-5 font-mono text-sm sm:text-base text-white flex items-center border border-accent/15 overflow-hidden">
         <span className="text-accent font-bold">
           {data.slug || 'yourname'}
         </span>

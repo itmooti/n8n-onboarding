@@ -8,14 +8,21 @@ import { getStepVideo } from '../lib/videos';
 export function Step01Welcome() {
   const video = getStepVideo(1);
   const { data, update, next } = useOnboardingStore();
-  const { scrape, loading } = useWebsiteScraper();
+  const { scrape, loading, error } = useWebsiteScraper();
 
   const handleFetch = async () => {
     if (!data.website_url) return;
 
+    // Ensure URL has protocol
+    let url = data.website_url;
+    if (!url.startsWith('http')) {
+      url = `https://${url}`;
+      update({ website_url: url });
+    }
+
     update({ websiteFetching: true });
 
-    const result = await scrape(data.website_url);
+    const result = await scrape(url);
 
     if (result) {
       const domain = data.website_url
@@ -71,6 +78,11 @@ export function Step01Welcome() {
           {loading || data.websiteFetching ? 'Fetching...' : 'Fetch My Details'}
         </Button>
       </div>
+      {error && (
+        <p className="text-amber-600 text-[13px] mt-2 font-medium">
+          Couldn't fully scrape that site — we'll fill in what we can. You can edit everything on the next step.
+        </p>
+      )}
       <button
         onClick={handleSkip}
         className="mt-4 text-accent text-[13px] font-semibold font-sans underline underline-offset-[3px] bg-transparent border-none cursor-pointer hover:text-accent-orange transition-colors"

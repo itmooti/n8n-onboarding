@@ -24,23 +24,23 @@ export function Step16Confirmation() {
   };
 
   return (
-    <div className="text-center py-5">
-      <div className="text-[64px] mb-4">&#x1F389;</div>
+    <div className="text-center py-3 sm:py-5">
+      <div className="text-[48px] sm:text-[64px] mb-3 sm:mb-4">&#x1F389;</div>
 
-      <h2 className="text-[32px] font-extrabold text-navy m-0 font-heading leading-[1.15]">
+      <h2 className="text-[24px] sm:text-[32px] font-extrabold text-navy m-0 font-heading leading-[1.15]">
         {needsBooking
           ? "You're all set! Let's book your first session."
           : 'Welcome to Awesomate!'}
       </h2>
 
-      <p className="text-gray-500 text-base mt-3 leading-relaxed max-w-[480px] mx-auto">
+      <p className="text-gray-500 text-sm sm:text-base mt-3 leading-relaxed max-w-[480px] mx-auto">
         {needsBooking
           ? `Click below to choose a time that works for you. We'll send a confirmation to ${data.email}.`
           : `Your n8n instance is being provisioned at ${data.slug}.awesomate.io — you'll receive an email when it's ready (usually within the hour).`}
       </p>
 
       {/* Summary card */}
-      <div className="bg-white border-2 border-gray-border rounded-2xl p-6 max-w-[400px] mx-auto mt-7 text-left">
+      <div className="bg-white border-2 border-gray-border rounded-2xl p-4 sm:p-6 max-w-[400px] mx-auto mt-5 sm:mt-7 text-left">
         <div className="flex justify-between mb-2">
           <span className="text-gray-400 text-[12px] uppercase tracking-[0.08em]">Plan</span>
           <span className="font-bold text-sm text-navy">{plan.name}</span>
@@ -53,7 +53,7 @@ export function Step16Confirmation() {
         </div>
         <div className="flex justify-between mb-2">
           <span className="text-gray-400 text-[12px] uppercase tracking-[0.08em]">Workspace</span>
-          <span className="font-bold text-sm text-accent font-mono">
+          <span className="font-bold text-xs sm:text-sm text-accent font-mono truncate max-w-[180px]">
             {data.slug}.awesomate.io
           </span>
         </div>

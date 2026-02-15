@@ -28,7 +28,7 @@ export function VideoPlayer({ title, duration, src, poster }: VideoPlayerProps) 
 
   return (
     <div
-      className="relative rounded-2xl flex flex-col items-center justify-center min-h-[260px] overflow-hidden border border-gray-border cursor-pointer group"
+      className="relative rounded-2xl flex flex-col items-center justify-center min-h-[180px] sm:min-h-[260px] overflow-hidden border border-gray-border cursor-pointer group"
       style={{
         background: 'linear-gradient(135deg, #0a0e1a 0%, #0f1128 60%, #161a38 100%)',
       }}
@@ -52,8 +52,9 @@ export function VideoPlayer({ title, duration, src, poster }: VideoPlayerProps) 
       />
 
       {/* Play button */}
-      <div className="w-14 h-14 rounded-full flex items-center justify-center bg-gradient-to-br from-accent to-accent-orange shadow-[0_0_30px_rgba(233,72,77,0.25)] mb-4 z-10 transition-transform duration-300 group-hover:scale-110">
-        <Play size={22} className="text-white ml-0.5" fill="white" />
+      <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-full flex items-center justify-center bg-gradient-to-br from-accent to-accent-orange shadow-[0_0_30px_rgba(233,72,77,0.25)] mb-3 sm:mb-4 z-10 transition-transform duration-300 group-hover:scale-110">
+        <Play size={18} className="text-white ml-0.5 sm:hidden" fill="white" />
+        <Play size={22} className="text-white ml-0.5 hidden sm:block" fill="white" />
       </div>
 
       <span className="text-white font-semibold text-sm opacity-90 tracking-wide z-10">

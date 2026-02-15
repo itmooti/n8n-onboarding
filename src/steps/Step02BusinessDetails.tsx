@@ -1,5 +1,5 @@
 import { useOnboardingStore } from '../store/onboarding';
-import { StepHeading, Input } from '../components/ui';
+import { StepHeading, Input, ColorPicker } from '../components/ui';
 import { NavButtons } from '../components/layout';
 
 export function Step02BusinessDetails() {
@@ -30,18 +30,20 @@ export function Step02BusinessDetails() {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-0">
-        {/* Colour swatches */}
-        <div className="flex gap-3 col-span-full mb-4">
-          <div
-            className="w-12 h-12 rounded-[10px] border-2 border-gray-border"
-            style={{ background: data.color1 }}
+        {/* Brand colour pickers */}
+        <div className="flex gap-4 items-end col-span-full mb-5">
+          <ColorPicker
+            color={data.color1}
+            onChange={(c) => update({ color1: c })}
+            label="Primary"
           />
-          <div
-            className="w-12 h-12 rounded-[10px] border-2 border-gray-border"
-            style={{ background: data.color2 }}
+          <ColorPicker
+            color={data.color2}
+            onChange={(c) => update({ color2: c })}
+            label="Secondary"
           />
-          <span className="self-center text-xs text-gray-500">
-            Brand colours (click to edit)
+          <span className="self-center text-[11px] text-gray-400 font-medium pb-1">
+            Brand colours
           </span>
         </div>
 
