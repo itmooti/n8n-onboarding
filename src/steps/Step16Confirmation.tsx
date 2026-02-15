@@ -403,7 +403,7 @@ export function Step16Confirmation() {
             <img
               alt="Eway Payment Gateway"
               src="https://www.eway.com.au/developer/payment-code/verified-seal.php?img=12&size=7&pid=7b219f54-20a0-48d5-ba3c-4180844729b3&theme=0"
-              style={{ maxHeight: '40px' }}
+              style={{ maxHeight: '70px' }}
             />
           </a>
         </div>
@@ -579,12 +579,12 @@ function ConfirmationView() {
 /** Checkout page footer with logo, copyright, and legal links */
 function CheckoutFooter() {
   return (
-    <footer className="mt-10 pt-6 border-t border-gray-200">
+    <footer className="mt-10 -mx-5 sm:-mx-7 px-5 sm:px-7 pt-6 border-t border-gray-200">
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
         <img
           src="/awesomate-logo.svg"
           alt="Awesomate"
-          className="w-[90px] h-auto grayscale opacity-30"
+          className="w-[130px] h-auto grayscale opacity-30"
         />
         <div className="text-gray-300 text-[11px] sm:text-[12px]">
           &copy; {new Date().getFullYear()} Awesomate.ai. All rights reserved.
