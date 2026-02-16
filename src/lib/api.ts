@@ -1,7 +1,7 @@
 import type { VitalSyncPlugin } from '../types/sdk';
 import type { OnboardingData } from '../types/onboarding';
 import { COUNTRIES } from './countries';
-import { getAffiliateConfig, isInquirePlan } from './affiliates';
+import { isInquirePlan } from './affiliates';
 import { getActivePlan } from './costs';
 
 /**
@@ -9,6 +9,10 @@ import { getActivePlan } from './costs';
  * switchTo() requires the internal name, not the publicName.
  */
 const MODEL_NAME = 'ItmootiContact';
+
+/** GraphQL endpoint and API key for direct HTTP calls */
+const GQL_URL = 'https://itmooti.vitalstats.app/api/v1/graphql';
+const GQL_KEY = import.meta.env.VITE_VITALSYNC_API_KEY || '';
 
 /** Map app plan keys to VitalStats enum values */
 const PLAN_MAP: Record<string, string> = {
@@ -62,8 +66,32 @@ function getPlugin(): VitalSyncPlugin | null {
 }
 
 /**
+ * Execute a GraphQL mutation/query against the VitalStats API.
+ */
+async function gql<T = any>(query: string, variables: Record<string, unknown>): Promise<T | null> {
+  const res = await fetch(GQL_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'Api-Key': GQL_KEY,
+    },
+    body: JSON.stringify({ query, variables }),
+  });
+  const json = await res.json();
+  if (json.errors) {
+    console.error('[VitalStats GQL] Errors:', json.errors);
+    return null;
+  }
+  return json.data;
+}
+
+/**
  * Build the full field map from OnboardingData → Contact schema columns.
  * Only includes fields that have actual data (skips nulls/empty).
+ *
+ * NOTE: last_referrer_id is excluded — setting FK relationship fields via
+ * createOne/GraphQL causes a 500 error. The referrer must be set separately.
  */
 function buildFieldMap(data: OnboardingData | Partial<OnboardingData>): Record<string, unknown> {
   const fields: Record<string, unknown> = {};
@@ -111,87 +139,39 @@ function buildFieldMap(data: OnboardingData | Partial<OnboardingData>): Record<s
   if (data.payment_status) fields.payment_status = data.payment_status;
   if (data.transaction_id) fields.transaction_id = data.transaction_id;
 
-  // Affiliate
-  if (data.affiliate_code) {
-    fields.affiliate_code = data.affiliate_code;
-    const affConfig = getAffiliateConfig(data.affiliate_code);
-    if (affConfig) {
-      fields.last_referrer_id = affConfig.referrerId;
-    }
-  }
+  // Affiliate code
+  if (data.affiliate_code) fields.aff_code = data.affiliate_code;
 
   return fields;
 }
 
 /**
- * Create a new Contact record (called after Step 3).
- * Returns the record ID for future updates.
+ * Create a new Contact record via GraphQL.
+ * Returns the server-assigned numeric ID.
  */
 export async function createOnboardingRecord(
   data: Partial<OnboardingData>,
 ): Promise<string | null> {
-  const plugin = getPlugin();
-  if (!plugin) {
-    console.warn('[VitalStats] SDK not ready — skipping record creation');
-    return null;
-  }
-
   try {
     const fields = buildFieldMap(data);
     fields.onboarding_status = 'In Progress';
-    console.log('[VitalStats] Creating contact with fields:', fields);
+    console.log('[VitalStats] Creating contact with fields:', Object.keys(fields));
 
-    const model = plugin.switchTo(MODEL_NAME);
-    if (!model) {
-      console.error('[VitalStats] switchTo returned undefined for', MODEL_NAME);
+    const result = await gql<{ createContact: { id: number; email: string } }>(
+      `mutation createContact($payload: ContactCreateInput) {
+        createContact(payload: $payload) { id email }
+      }`,
+      { payload: fields },
+    );
+
+    if (!result?.createContact?.id) {
+      console.error('[VitalStats] Create returned no ID');
       return null;
     }
 
-    const mutation = model.mutation();
-    const record = mutation.createOne(fields);
-    const result = await mutation.execute(true).toPromise();
-
-    if ((result as any)?.isCancelling) {
-      console.error('[VitalStats] Create mutation was cancelled');
-      return null;
-    }
-
-    // Debug: inspect what createOne actually returns
-    console.log('[VitalStats] record object:', record);
-    console.log('[VitalStats] record type:', typeof record);
-    console.log('[VitalStats] record keys:', record ? Object.keys(record) : 'null');
-    console.log('[VitalStats] record.id:', (record as any)?.id);
-    console.log('[VitalStats] execute result:', result);
-
-    // Try to get ID from the record object
-    let id = (record as any)?.id;
-
-    // Fallback: query for the record we just created using a unique field
-    if (!id && data.email) {
-      console.log('[VitalStats] ID not on record, querying by email:', data.email);
-      try {
-        const queryResult = await model
-          .query()
-          .select(['id'])
-          .where('email', '=', data.email)
-          .limit(1)
-          .fetchAllRecords()
-          .pipe(window.toMainInstance(true))
-          .toPromise();
-        console.log('[VitalStats] Query result:', queryResult);
-        if (queryResult) {
-          const records = Object.values(queryResult);
-          if (records.length > 0) {
-            id = (records[0] as any)?.id;
-          }
-        }
-      } catch (queryErr) {
-        console.error('[VitalStats] Fallback query failed:', queryErr);
-      }
-    }
-
-    console.log('[VitalStats] Contact created, final id:', id);
-    return id ? String(id) : null;
+    const id = String(result.createContact.id);
+    console.log('[VitalStats] Contact created, id:', id);
+    return id;
   } catch (err) {
     console.error('[VitalStats] Failed to create record:', err);
     return null;
@@ -199,7 +179,7 @@ export async function createOnboardingRecord(
 }
 
 /**
- * Update the Contact record with all data collected so far.
+ * Update the Contact record via GraphQL with all data collected so far.
  * Called at key save points — each save is comprehensive so
  * no data is lost if an earlier save was missed.
  */
@@ -207,11 +187,6 @@ export async function updateOnboardingRecord(
   recordId: string,
   data: OnboardingData,
 ): Promise<void> {
-  const plugin = getPlugin();
-  if (!plugin) {
-    console.warn('[VitalStats] SDK not ready — skipping update');
-    return;
-  }
   if (!recordId) {
     console.warn('[VitalStats] No record ID — skipping update');
     return;
@@ -222,22 +197,20 @@ export async function updateOnboardingRecord(
     fields.onboarding_status = 'In Progress';
     console.log('[VitalStats] Updating contact', recordId, 'with fields:', Object.keys(fields));
 
-    const model = plugin.switchTo(MODEL_NAME);
-    if (!model) {
-      console.error('[VitalStats] switchTo returned undefined for', MODEL_NAME);
-      return;
-    }
-
-    const mutation = model.mutation();
-    mutation.update((q: any) =>
-      q.where('id', '=', Number(recordId)).set(fields)
+    const result = await gql<{ updateContact: { id: number } }>(
+      `mutation updateContact($payload: ContactUpdateInput, $query: [ContactQueryBuilderInput]) {
+        updateContact(payload: $payload, query: $query) { id }
+      }`,
+      {
+        query: [{ where: { id: Number(recordId) } }],
+        payload: fields,
+      },
     );
-    const result = await mutation.execute(true).toPromise();
 
-    if ((result as any)?.isCancelling) {
-      console.error('[VitalStats] Update mutation was cancelled for id:', recordId);
-    } else {
+    if (result?.updateContact) {
       console.log('[VitalStats] Contact updated successfully, id:', recordId);
+    } else {
+      console.error('[VitalStats] Update returned no result for id:', recordId);
     }
   } catch (err) {
     console.error('[VitalStats] Failed to update record:', err);
@@ -252,8 +225,7 @@ export async function markComplete(
   recordId: string,
   data: OnboardingData,
 ): Promise<void> {
-  const plugin = getPlugin();
-  if (!plugin || !recordId) return;
+  if (!recordId) return;
 
   const needsBooking =
     data.credential_setup === 'assisted' ||
@@ -269,22 +241,20 @@ export async function markComplete(
     fields.onboarding_completed_at = Math.floor(Date.now() / 1000);
     console.log('[VitalStats] Marking complete', recordId, 'with fields:', Object.keys(fields));
 
-    const model = plugin.switchTo(MODEL_NAME);
-    if (!model) {
-      console.error('[VitalStats] switchTo returned undefined for', MODEL_NAME);
-      return;
-    }
-
-    const mutation = model.mutation();
-    mutation.update((q: any) =>
-      q.where('id', '=', Number(recordId)).set(fields)
+    const result = await gql<{ updateContact: { id: number } }>(
+      `mutation updateContact($payload: ContactUpdateInput, $query: [ContactQueryBuilderInput]) {
+        updateContact(payload: $payload, query: $query) { id }
+      }`,
+      {
+        query: [{ where: { id: Number(recordId) } }],
+        payload: fields,
+      },
     );
-    const result = await mutation.execute(true).toPromise();
 
-    if ((result as any)?.isCancelling) {
-      console.error('[VitalStats] Mark complete mutation was cancelled for id:', recordId);
-    } else {
+    if (result?.updateContact) {
       console.log('[VitalStats] Contact marked complete, id:', recordId);
+    } else {
+      console.error('[VitalStats] Mark complete returned no result for id:', recordId);
     }
   } catch (err) {
     console.error('[VitalStats] Failed to mark complete:', err);

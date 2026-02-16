@@ -74,8 +74,8 @@ const initialData: OnboardingData = {
 async function autoSave(prevStep: number, nextStep: number, data: OnboardingData): Promise<string | null> {
   console.log(`[AutoSave] Step ${prevStep} → ${nextStep}, record_id: ${data.vitalsync_record_id || 'none'}`);
 
-  // Step 3 → 4: Create record with business details
-  if (prevStep === 3 && nextStep === 4 && !data.vitalsync_record_id) {
+  // Step 2 → 3: Create record with contact/business details
+  if (prevStep === 2 && nextStep === 3 && !data.vitalsync_record_id) {
     console.log('[AutoSave] Creating new contact record');
     const id = await createOnboardingRecord(data);
     return id;
