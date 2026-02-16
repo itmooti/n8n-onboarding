@@ -1,12 +1,18 @@
 import { useOnboardingStore } from '../store/onboarding';
+import { SplitLayout } from '../components/layout/SplitLayout';
+import { VideoPlayer } from '../components/video/VideoPlayer';
 import { StepHeading, SelectionCard, CostTracker } from '../components/ui';
 import { NavButtons } from '../components/layout';
+import { getStepVideo } from '../lib/videos';
 
 export function Step12WebsiteHosting() {
   const { data, update, next, prev } = useOnboardingStore();
+  const video = getStepVideo(12);
 
   return (
-    <>
+    <SplitLayout
+      video={<VideoPlayer title={video?.title || 'Website Hosting'} duration={video?.duration || '0:08'} src={video?.src} />}
+    >
       <StepHeading
         title="Want us to host your website too?"
         subtitle="If you're running WordPress, we can host it alongside your n8n instance at no extra cost."
@@ -63,6 +69,6 @@ export function Step12WebsiteHosting() {
         onNext={next}
         nextDisabled={data.website_hosting === null}
       />
-    </>
+    </SplitLayout>
   );
 }

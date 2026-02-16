@@ -130,6 +130,33 @@ function App() {
           </motion.div>
         </AnimatePresence>
       </div>
+
+      {/* Global footer */}
+      <footer className="border-t border-gray-200 bg-white/60">
+        <div className="max-w-[800px] mx-auto px-4 sm:px-8 py-5 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <span className="text-gray-300 text-[13px]">
+            &copy; {new Date().getFullYear()} Awesomate.ai. All rights reserved.
+          </span>
+          <div className="flex items-center gap-5">
+            <a
+              href="https://awesomate.ai/privacy-policy"
+              target="_blank"
+              rel="noreferrer"
+              className="text-gray-400 hover:text-gray-600 text-[13px] font-medium transition-colors"
+            >
+              Privacy
+            </a>
+            <a
+              href="https://awesomate.ai/terms-of-service"
+              target="_blank"
+              rel="noreferrer"
+              className="text-gray-400 hover:text-gray-600 text-[13px] font-medium transition-colors"
+            >
+              Terms
+            </a>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

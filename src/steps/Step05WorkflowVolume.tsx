@@ -1,12 +1,18 @@
 import { useOnboardingStore } from '../store/onboarding';
+import { SplitLayout } from '../components/layout/SplitLayout';
+import { VideoPlayer } from '../components/video/VideoPlayer';
 import { StepHeading, SelectionCard } from '../components/ui';
 import { NavButtons } from '../components/layout';
+import { getStepVideo } from '../lib/videos';
 
 export function Step05WorkflowVolume() {
   const { data, update, next, prev } = useOnboardingStore();
+  const video = getStepVideo(5);
 
   return (
-    <>
+    <SplitLayout
+      video={<VideoPlayer title={video?.title || 'Workflow Volume'} duration={video?.duration || '0:08'} src={video?.src} />}
+    >
       <StepHeading
         title="How many automations are you thinking?"
         subtitle="Give us a rough idea so we can size your plan right."
@@ -49,6 +55,6 @@ export function Step05WorkflowVolume() {
         nextLabel="See My Recommendation"
         nextDisabled={!data.workflow_volume}
       />
-    </>
+    </SplitLayout>
   );
 }

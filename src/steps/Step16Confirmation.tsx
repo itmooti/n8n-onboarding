@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useOnboardingStore } from '../store/onboarding';
 import { Button, StepHeading } from '../components/ui';
+import { VideoPlayer } from '../components/video/VideoPlayer';
 import { PLANS, BOOKING_URL } from '../lib/constants';
 import { getActivePlan } from '../lib/costs';
 import { buildOrderLineItems, calculateCheckoutTotals } from '../lib/products';
@@ -8,6 +9,7 @@ import { usePayment } from '../hooks/usePayment';
 import { markComplete } from '../lib/api';
 import { COUNTRIES } from '../lib/countries';
 import { isInquirePlan, getAffiliateConfig } from '../lib/affiliates';
+import { getStepVideo } from '../lib/videos';
 import { Loader2, CreditCard, Lock, MapPin, AlertCircle, ShieldCheck, RefreshCw, CheckCircle2, Calendar, Users } from 'lucide-react';
 import { GettingStartedGuide } from '../components/GettingStartedGuide';
 
@@ -615,6 +617,7 @@ function EmbeddedInquiryView() {
 /** Post-payment confirmation view */
 function ConfirmationView() {
   const { data } = useOnboardingStore();
+  const video = getStepVideo(16);
 
   const activePlan = getActivePlan(data);
   const plan = PLANS[activePlan];
@@ -634,6 +637,11 @@ function ConfirmationView() {
 
   return (
     <div className="py-3 sm:py-5">
+      {/* Confirmation video */}
+      <div className="mb-6">
+        <VideoPlayer title={video?.title || "You're All Set!"} duration={video?.duration || '0:08'} src={video?.src} />
+      </div>
+
       {/* Success banner */}
       <div className="bg-green-50 border-2 border-green-200 rounded-[16px] sm:rounded-[20px] p-5 sm:p-7 mb-6 text-center">
         <CheckCircle2 size={48} className="text-green-500 mx-auto mb-3" />

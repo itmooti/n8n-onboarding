@@ -1,4 +1,6 @@
 import { useOnboardingStore } from '../store/onboarding';
+import { SplitLayout } from '../components/layout/SplitLayout';
+import { VideoPlayer } from '../components/video/VideoPlayer';
 import { StepHeading } from '../components/ui';
 import { NavButtons } from '../components/layout';
 import { PLANS } from '../lib/constants';
@@ -9,6 +11,7 @@ import {
   getStandardPrice,
   isInquirePlan,
 } from '../lib/affiliates';
+import { getStepVideo } from '../lib/videos';
 import type { PlanKey } from '../types/onboarding';
 
 /** Render plan price with optional strikethrough for affiliate discounts */
@@ -55,6 +58,7 @@ function PlanPrice({ planKey, affCode, size = 'normal' }: {
 
 export function Step06PlanRecommendation() {
   const { data, update, next, prev } = useOnboardingStore();
+  const video = getStepVideo(6);
 
   const rec = PLANS[data.recommended_plan || 'pro'];
   const initial = PLANS[data.initial_plan];
@@ -66,7 +70,9 @@ export function Step06PlanRecommendation() {
   const affCode = data.affiliate_code;
 
   return (
-    <>
+    <SplitLayout
+      video={<VideoPlayer title={video?.title || 'Your Recommended Plan'} duration={video?.duration || '0:08'} src={video?.src} />}
+    >
       <StepHeading title="Your Recommended Plan" />
 
       {isDifferent ? (
@@ -146,6 +152,6 @@ export function Step06PlanRecommendation() {
         onNext={next}
         nextLabel={`Continue with ${active.name}`}
       />
-    </>
+    </SplitLayout>
   );
 }
