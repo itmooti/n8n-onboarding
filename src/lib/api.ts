@@ -116,7 +116,7 @@ function buildFieldMap(data: OnboardingData | Partial<OnboardingData>): Record<s
     fields.affiliate_code = data.affiliate_code;
     const affConfig = getAffiliateConfig(data.affiliate_code);
     if (affConfig) {
-      fields.last_referrer = affConfig.referrerId;
+      fields.last_referrer_id = affConfig.referrerId;
     }
   }
 
