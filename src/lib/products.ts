@@ -1,6 +1,7 @@
-import type { OnboardingData, PlanKey } from '../types/onboarding';
+import type { OnboardingData } from '../types/onboarding';
 import { PLANS } from './constants';
 import { getActivePlan, isPaidAddon } from './costs';
+import { getEffectivePrice, getEffectiveYearlyTotal } from './affiliates';
 
 /** Ontraport product IDs */
 export const ONTRAPORT_PRODUCTS: Record<string, number> = {
@@ -16,14 +17,6 @@ export const ONTRAPORT_PRODUCTS: Record<string, number> = {
   local_hosting_setup: 178,
   // Recurring add-ons
   local_hosting_monthly: 179,
-};
-
-/** Annual totals for yearly billing (yearlyPrice × 12) */
-const YEARLY_TOTALS: Record<PlanKey, number> = {
-  essentials: 756,
-  'support-plus': 1500,
-  pro: 3696,
-  embedded: 35004,
 };
 
 export interface OntraportProduct {
@@ -70,11 +63,13 @@ function makeOneTime(id: number, price: number): OntraportProduct {
 export function buildProductsArray(data: OnboardingData): OntraportProduct[] {
   const products: OntraportProduct[] = [];
   const activePlan = getActivePlan(data);
-  const plan = PLANS[activePlan];
   const isYearly = data.billing === 'yearly';
+  const affCode = data.affiliate_code;
 
-  // Plan subscription
-  const planPrice = isYearly ? YEARLY_TOTALS[activePlan] : plan.price;
+  // Plan subscription (affiliate-aware pricing)
+  const planMonthly = getEffectivePrice(activePlan, affCode) ?? 0;
+  const planYearly = getEffectiveYearlyTotal(activePlan, affCode) ?? 0;
+  const planPrice = isYearly ? planYearly : planMonthly;
   const planUnit = isYearly ? 'year' : 'month';
   products.push(makeSubscription(ONTRAPORT_PRODUCTS[activePlan], planPrice, planUnit));
 
@@ -92,7 +87,9 @@ export function buildProductsArray(data: OnboardingData): OntraportProduct[] {
   // Local hosting
   if (data.local_hosting) {
     products.push(makeOneTime(ONTRAPORT_PRODUCTS.local_hosting_setup, 1000));
-    products.push(makeSubscription(ONTRAPORT_PRODUCTS.local_hosting_monthly, 50, 'month'));
+    const hostingPrice = isYearly ? 500 : 50;
+    const hostingUnit = isYearly ? 'year' : 'month';
+    products.push(makeSubscription(ONTRAPORT_PRODUCTS.local_hosting_monthly, hostingPrice, hostingUnit));
   }
 
   return products;
@@ -114,11 +111,15 @@ export function buildOrderLineItems(data: OnboardingData): OrderLineItem[] {
   const activePlan = getActivePlan(data);
   const plan = PLANS[activePlan];
   const isYearly = data.billing === 'yearly';
+  const affCode = data.affiliate_code;
 
-  // Plan
+  // Plan (affiliate-aware pricing)
+  const planMonthly = getEffectivePrice(activePlan, affCode) ?? 0;
+  const planYearly = getEffectiveYearlyTotal(activePlan, affCode) ?? 0;
+
   items.push({
     label: `${plan.name} Plan`,
-    amount: isYearly ? YEARLY_TOTALS[activePlan] : plan.price,
+    amount: isYearly ? planYearly : planMonthly,
     recurring: true,
     period: isYearly ? 'year' : 'month',
   });
@@ -135,7 +136,12 @@ export function buildOrderLineItems(data: OnboardingData): OrderLineItem[] {
   }
   if (data.local_hosting) {
     items.push({ label: 'Local Hosting Setup', amount: 1000, recurring: false });
-    items.push({ label: 'Local Hosting', amount: 50, recurring: true, period: 'month' });
+    items.push({
+      label: 'Local Hosting',
+      amount: isYearly ? 500 : 50,
+      recurring: true,
+      period: isYearly ? 'year' : 'month',
+    });
   }
 
   return items;

@@ -1,6 +1,8 @@
 import type { VitalSyncPlugin } from '../types/sdk';
 import type { OnboardingData } from '../types/onboarding';
 import { COUNTRIES } from './countries';
+import { getAffiliateConfig, isInquirePlan } from './affiliates';
+import { getActivePlan } from './costs';
 
 /**
  * VitalStats internal model name (prefixed).
@@ -105,8 +107,18 @@ function buildFieldMap(data: OnboardingData | Partial<OnboardingData>): Record<s
   if (data.automation_areas && data.automation_areas.length > 0) fields.automation_areas = data.automation_areas.join(', ');
 
   // Payment
+  if (data.billing_email) fields.Billing_Email = data.billing_email;
   if (data.payment_status) fields.payment_status = data.payment_status;
   if (data.transaction_id) fields.transaction_id = data.transaction_id;
+
+  // Affiliate
+  if (data.affiliate_code) {
+    fields.affiliate_code = data.affiliate_code;
+    const affConfig = getAffiliateConfig(data.affiliate_code);
+    if (affConfig) {
+      fields.last_referrer = affConfig.referrerId;
+    }
+  }
 
   return fields;
 }
@@ -250,7 +262,9 @@ export async function markComplete(
 
   try {
     const fields = buildFieldMap(data);
-    fields.onboarding_status = 'Completed';
+    const activePlan = getActivePlan(data);
+    const isEmbeddedInquiry = isInquirePlan(activePlan, data.affiliate_code);
+    fields.onboarding_status = isEmbeddedInquiry ? 'Embedded Inquiry' : 'Completed';
     fields.needs_booking = needsBooking;
     fields.onboarding_completed_at = Math.floor(Date.now() / 1000);
     console.log('[VitalStats] Marking complete', recordId, 'with fields:', Object.keys(fields));

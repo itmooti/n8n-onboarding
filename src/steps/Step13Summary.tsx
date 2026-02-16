@@ -3,6 +3,13 @@ import { StepHeading } from '../components/ui';
 import { NavButtons } from '../components/layout';
 import { PLANS } from '../lib/constants';
 import { calculateCosts, getActivePlan, isPaidAddon } from '../lib/costs';
+import {
+  getEffectivePrice,
+  getEffectiveYearlyTotal,
+  hasAffiliateDiscount,
+  getStandardPrice,
+  getStandardYearlyTotal,
+} from '../lib/affiliates';
 
 export function Step13Summary() {
   const { data, update, next, prev } = useOnboardingStore();
@@ -10,6 +17,26 @@ export function Step13Summary() {
   const activePlan = getActivePlan(data);
   const plan = PLANS[activePlan];
   const costs = calculateCosts(data);
+  const isYearly = data.billing === 'yearly';
+  const period = isYearly ? '/yr' : '/mo';
+  const affCode = data.affiliate_code;
+
+  // Affiliate-aware plan pricing
+  const effectiveMonthly = getEffectivePrice(activePlan, affCode) ?? 0;
+  const effectiveYearlyTotal = getEffectiveYearlyTotal(activePlan, affCode) ?? 0;
+  const planPrice = isYearly ? effectiveYearlyTotal : effectiveMonthly;
+
+  // Strikethrough for discounted plans
+  const showStrike = hasAffiliateDiscount(activePlan, affCode);
+  const standardMonthly = getStandardPrice(activePlan);
+  const standardYearlyTotal = getStandardYearlyTotal(activePlan);
+  const standardPlanPrice = isYearly ? standardYearlyTotal : standardMonthly;
+
+  const hostingRecurring = isYearly ? 500 : 50;
+
+  // Recurring total (plan + hosting if applicable)
+  let recurringTotal = planPrice;
+  if (data.local_hosting) recurringTotal += hostingRecurring;
 
   const addons: { label: string; cost: string }[] = [];
 
@@ -33,7 +60,7 @@ export function Step13Summary() {
   }
   if (data.local_hosting) {
     addons.push({ label: 'Local hosting setup', cost: 'AU$1,000' });
-    addons.push({ label: 'Local hosting (monthly)', cost: 'AU$50/mo' });
+    addons.push({ label: `Local hosting`, cost: `AU$${hostingRecurring}${period}` });
   }
   if (data.website_hosting) {
     addons.push({ label: 'WordPress hosting', cost: 'Free \u2713' });
@@ -64,9 +91,17 @@ export function Step13Summary() {
           </div>
           <div className="text-right">
             <div className="text-[22px] sm:text-[28px] font-extrabold font-heading accent-gradient-text">
-              AU${costs.planMonthly}
+              {showStrike && (
+                <span
+                  className="text-white/30 line-through text-[0.6em] mr-2"
+                  style={{ WebkitTextFillColor: 'rgba(255,255,255,0.3)' }}
+                >
+                  AU${standardPlanPrice.toLocaleString()}
+                </span>
+              )}
+              AU${planPrice.toLocaleString()}
             </div>
-            <div className="text-white/40 text-xs">/month</div>
+            <div className="text-white/40 text-xs">{isYearly ? '/year' : '/month'}</div>
           </div>
         </div>
 
@@ -118,10 +153,10 @@ export function Step13Summary() {
           <div className="mt-5 p-4 bg-gray-bg rounded-xl">
             <div className="flex justify-between mb-2">
               <span className="font-semibold text-gray-500 text-sm">
-                Monthly total
+                {isYearly ? 'Annual total' : 'Monthly total'}
               </span>
               <span className="font-extrabold text-navy text-xl font-heading">
-                AU${costs.monthly}/mo
+                AU${recurringTotal.toLocaleString()}{period}
               </span>
             </div>
             {costs.oneTime > 0 && (
@@ -134,6 +169,9 @@ export function Step13Summary() {
                 </span>
               </div>
             )}
+            <div className="text-[10px] text-gray-400 text-right mt-2">
+              All prices include GST
+            </div>
           </div>
         </div>
       </div>

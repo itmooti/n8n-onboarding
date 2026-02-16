@@ -1,5 +1,5 @@
 import { useOnboardingStore } from '../store/onboarding';
-import { StepHeading, SelectionCard } from '../components/ui';
+import { StepHeading, SelectionCard, CostTracker } from '../components/ui';
 import { NavButtons } from '../components/layout';
 
 export function Step12WebsiteHosting() {
@@ -55,6 +55,8 @@ export function Step12WebsiteHosting() {
           </p>
         </div>
       )}
+
+      <CostTracker />
 
       <NavButtons
         onBack={prev}

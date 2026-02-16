@@ -17,8 +17,8 @@ export const PLANS: Record<string, PlanInfo> = {
   'support-plus': {
     key: 'support-plus',
     name: 'Support Plus',
-    price: 150,
-    yearlyPrice: 125,
+    price: 175,
+    yearlyPrice: 146,
     color: '#0f1128',
     features: [
       'Everything in Essentials',
@@ -30,8 +30,8 @@ export const PLANS: Record<string, PlanInfo> = {
   pro: {
     key: 'pro',
     name: 'Automations Pro',
-    price: 370,
-    yearlyPrice: 308,
+    price: 375,
+    yearlyPrice: 313,
     color: '#e9484d',
     features: [
       'Everything in Support Plus',

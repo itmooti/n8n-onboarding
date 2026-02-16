@@ -3,7 +3,7 @@ import { AddonStep } from './AddonStep';
 export function Step07CredentialSetup() {
   return (
     <AddonStep
-      stepNumber={7}
+      stepNumber={8}
       title="Credential Setup"
       subtitle="Connecting your apps to n8n can be tricky the first time. We can do it with you."
       videoTitle="Credential Setup"

@@ -3,6 +3,55 @@ import { StepHeading } from '../components/ui';
 import { NavButtons } from '../components/layout';
 import { PLANS } from '../lib/constants';
 import { Check } from 'lucide-react';
+import {
+  getEffectivePrice,
+  hasAffiliateDiscount,
+  getStandardPrice,
+  isInquirePlan,
+} from '../lib/affiliates';
+import type { PlanKey } from '../types/onboarding';
+
+/** Render plan price with optional strikethrough for affiliate discounts */
+function PlanPrice({ planKey, affCode, size = 'normal' }: {
+  planKey: PlanKey;
+  affCode: string | null;
+  size?: 'normal' | 'large';
+}) {
+  const isInquiry = isInquirePlan(planKey, affCode);
+  if (isInquiry) {
+    const textSize = size === 'large'
+      ? 'text-3xl sm:text-4xl'
+      : 'text-2xl sm:text-3xl';
+    return (
+      <div className={`${textSize} font-extrabold mt-1 font-heading accent-gradient-text`}>
+        Inquire
+      </div>
+    );
+  }
+
+  const showStrike = hasAffiliateDiscount(planKey, affCode);
+  const effectivePrice = getEffectivePrice(planKey, affCode) ?? 0;
+  const standardPrice = getStandardPrice(planKey);
+  const textSize = size === 'large'
+    ? 'text-3xl sm:text-4xl'
+    : 'text-2xl sm:text-3xl';
+  const suffixSize = size === 'large' ? 'text-base' : 'text-sm';
+
+  return (
+    <div className={`${textSize} font-extrabold mt-1 font-heading accent-gradient-text`}>
+      {showStrike && (
+        <span
+          className="text-gray-400 line-through text-[0.65em] mr-1.5"
+          style={{ WebkitTextFillColor: '#9ca3af' }}
+        >
+          AU${standardPrice}
+        </span>
+      )}
+      AU${effectivePrice}
+      <span className={`${suffixSize} text-gray-500 font-medium`} style={{ WebkitTextFillColor: '#6b7280' }}>/mo</span>
+    </div>
+  );
+}
 
 export function Step06PlanRecommendation() {
   const { data, update, next, prev } = useOnboardingStore();
@@ -14,6 +63,7 @@ export function Step06PlanRecommendation() {
   const activePlan = data.final_plan || data.recommended_plan || data.initial_plan;
   const active = PLANS[activePlan];
   const isRecommendedSelected = activePlan === (data.recommended_plan || 'pro');
+  const affCode = data.affiliate_code;
 
   return (
     <>
@@ -48,10 +98,7 @@ export function Step06PlanRecommendation() {
               <h3 className="text-[20px] sm:text-[24px] font-extrabold text-navy m-0 font-heading">
                 {rec.name}
               </h3>
-              <div className="text-2xl sm:text-3xl font-extrabold mt-1 font-heading accent-gradient-text">
-                AU${rec.price}
-                <span className="text-sm text-gray-500 font-medium" style={{ WebkitTextFillColor: '#6b7280' }}>/mo</span>
-              </div>
+              <PlanPrice planKey={rec.key} affCode={affCode} />
             </div>
 
             {/* Original plan card */}
@@ -74,10 +121,7 @@ export function Step06PlanRecommendation() {
               <h3 className="text-[20px] sm:text-[24px] font-extrabold text-navy m-0 font-heading">
                 {initial.name}
               </h3>
-              <div className="text-2xl sm:text-3xl font-extrabold mt-1 font-heading accent-gradient-text">
-                AU${initial.price}
-                <span className="text-sm text-gray-500 font-medium" style={{ WebkitTextFillColor: '#6b7280' }}>/mo</span>
-              </div>
+              <PlanPrice planKey={initial.key} affCode={affCode} />
             </div>
           </div>
         </>
@@ -90,10 +134,7 @@ export function Step06PlanRecommendation() {
           <h3 className="text-[22px] sm:text-[28px] font-extrabold text-navy m-0 font-heading">
             {rec.name}
           </h3>
-          <div className="text-3xl sm:text-4xl font-extrabold mt-2 font-heading accent-gradient-text">
-            AU${rec.price}
-            <span className="text-base text-gray-500 font-medium" style={{ WebkitTextFillColor: '#6b7280' }}>/mo</span>
-          </div>
+          <PlanPrice planKey={rec.key} affCode={affCode} size="large" />
           <p className="text-gray-500 text-[13px] leading-relaxed mt-3">
             Based on your answers, this plan is a perfect fit for your needs.
           </p>

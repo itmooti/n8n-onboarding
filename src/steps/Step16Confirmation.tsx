@@ -7,7 +7,9 @@ import { buildOrderLineItems, calculateCheckoutTotals } from '../lib/products';
 import { usePayment } from '../hooks/usePayment';
 import { markComplete } from '../lib/api';
 import { COUNTRIES } from '../lib/countries';
-import { Loader2, CreditCard, Lock, MapPin, AlertCircle, ShieldCheck, RefreshCw, CheckCircle2, Calendar } from 'lucide-react';
+import { isInquirePlan, getAffiliateConfig } from '../lib/affiliates';
+import { Loader2, CreditCard, Lock, MapPin, AlertCircle, ShieldCheck, RefreshCw, CheckCircle2, Calendar, Users } from 'lucide-react';
+import { GettingStartedGuide } from '../components/GettingStartedGuide';
 
 /** Format card number with spaces every 4 digits */
 function formatCardNumber(value: string): string {
@@ -36,16 +38,21 @@ export function Step16Confirmation() {
   const [localError, setLocalError] = useState<string | null>(null);
 
   const paymentComplete = data.payment_status === 'completed';
+  const activePlan = getActivePlan(data);
 
   // ──────────────── POST-PAYMENT CONFIRMATION ────────────────
   if (paymentComplete) {
     return <ConfirmationView />;
   }
 
+  // ──────────────── EMBEDDED TEAM INQUIRY (affiliate "Inquire" plan) ────────────────
+  if (isInquirePlan(activePlan, data.affiliate_code)) {
+    return <EmbeddedInquiryView />;
+  }
+
   // ──────────────── PRE-PAYMENT CHECKOUT ────────────────
   const lineItems = buildOrderLineItems(data);
   const { dueToday, recurring, period } = calculateCheckoutTotals(data);
-  const activePlan = getActivePlan(data);
   const plan = PLANS[activePlan];
 
   const rawDigits = cardNumber.replace(/\s/g, '');
@@ -56,6 +63,7 @@ export function Step16Confirmation() {
     expiryYear !== '' &&
     cvv.length >= 3 &&
     cvv.length <= 4 &&
+    data.billing_email.trim() !== '' &&
     address.trim() !== '' &&
     city.trim() !== '' &&
     zip.trim() !== '' &&
@@ -215,6 +223,21 @@ export function Step16Confirmation() {
           <span className="text-[11px] font-bold text-gray-400 uppercase tracking-[0.1em]">
             BILLING ADDRESS
           </span>
+        </div>
+
+        {/* Billing Email */}
+        <div className="mb-3">
+          <label className={labelClass}>
+            Billing Email <span className="text-accent">*</span>
+          </label>
+          <input
+            type="email"
+            autoComplete="email"
+            value={data.billing_email}
+            onChange={(e) => update({ billing_email: e.target.value })}
+            placeholder={data.email || 'billing@company.com'}
+            className={inputClass}
+          />
         </div>
 
         {/* Address line 1 */}
@@ -458,6 +481,137 @@ export function Step16Confirmation() {
   );
 }
 
+/** Embedded Team inquiry view — shown when affiliate plan has null pricing */
+function EmbeddedInquiryView() {
+  const { data, update, prev } = useOnboardingStore();
+  const [submitting, setSubmitting] = useState(false);
+  const affConfig = getAffiliateConfig(data.affiliate_code);
+
+  const submitted = !!data.completed_at;
+
+  const handleSubmit = async () => {
+    setSubmitting(true);
+
+    const now = new Date().toISOString();
+    update({ completed_at: now });
+
+    // Save to VitalStats as embedded inquiry
+    if (data.vitalsync_record_id) {
+      await markComplete(data.vitalsync_record_id, {
+        ...data,
+        completed_at: now,
+      });
+    }
+
+    setSubmitting(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  if (submitted) {
+    return (
+      <div className="py-3 sm:py-5">
+        <div className="bg-blue-50 border-2 border-blue-200 rounded-[16px] sm:rounded-[20px] p-5 sm:p-7 mb-6 text-center">
+          <CheckCircle2 size={48} className="text-blue-500 mx-auto mb-3" />
+          <h2 className="text-[22px] sm:text-[28px] font-extrabold text-navy m-0 font-heading leading-[1.15]">
+            Request Submitted!
+          </h2>
+          <p className="text-blue-700 text-sm mt-2 font-medium">
+            Our team will reach out to you shortly to discuss your Embedded Team setup.
+          </p>
+        </div>
+
+        <div className="bg-white border-2 border-gray-border rounded-[16px] sm:rounded-[20px] p-5 sm:p-7 mb-6">
+          <h3 className="text-[16px] font-bold text-navy mb-3 font-heading">What happens next?</h3>
+          <ul className="space-y-3 text-sm text-gray-600">
+            <li className="flex gap-3">
+              <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gradient-to-br from-accent to-accent-orange text-white text-xs font-bold flex items-center justify-center">1</span>
+              <span>You'll start on the <strong>Automations Pro</strong> plan so you can begin using n8n right away.</span>
+            </li>
+            <li className="flex gap-3">
+              <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gradient-to-br from-accent to-accent-orange text-white text-xs font-bold flex items-center justify-center">2</span>
+              <span>Our team will reach out to discuss your specific Embedded Team requirements.</span>
+            </li>
+            <li className="flex gap-3">
+              <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gradient-to-br from-accent to-accent-orange text-white text-xs font-bold flex items-center justify-center">3</span>
+              <span>Once confirmed, we'll transition your account to the full Embedded Team plan.</span>
+            </li>
+          </ul>
+        </div>
+
+        <div className="text-center">
+          <p className="text-gray-500 text-sm">
+            We'll send details to <strong>{data.email}</strong>.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <StepHeading
+        title="Embedded Team Plan"
+        subtitle={affConfig ? `Exclusive offer via ${affConfig.name}` : undefined}
+      />
+
+      <div
+        className="rounded-[16px] sm:rounded-[20px] p-5 sm:p-7 mb-5 text-center"
+        style={{
+          background: 'linear-gradient(135deg, #0a0e1a 0%, #0f1128 60%, #161a38 100%)',
+        }}
+      >
+        <Users size={40} className="text-white/70 mx-auto mb-3" />
+        <h3 className="text-[20px] sm:text-[24px] font-extrabold text-white mb-2 font-heading">
+          Embedded Team
+        </h3>
+        <p className="text-white/60 text-sm leading-relaxed max-w-[420px] mx-auto">
+          A dedicated automation architect embedded in your business. Custom-built workflows, continuous optimisation, and advanced AI features.
+        </p>
+      </div>
+
+      <div className="bg-white border-2 border-gray-border rounded-[16px] sm:rounded-[20px] p-5 sm:p-7 mb-5">
+        <h3 className="text-[16px] font-bold text-navy mb-3 font-heading">Here's what happens next</h3>
+        <ul className="space-y-3 text-sm text-gray-600">
+          <li className="flex gap-3">
+            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gradient-to-br from-accent to-accent-orange text-white text-xs font-bold flex items-center justify-center">1</span>
+            <span>Submit your interest and our team will reach out to discuss your specific requirements.</span>
+          </li>
+          <li className="flex gap-3">
+            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gradient-to-br from-accent to-accent-orange text-white text-xs font-bold flex items-center justify-center">2</span>
+            <span>You'll start on the <strong>Automations Pro</strong> plan immediately — no payment required now.</span>
+          </li>
+          <li className="flex gap-3">
+            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gradient-to-br from-accent to-accent-orange text-white text-xs font-bold flex items-center justify-center">3</span>
+            <span>Once your Embedded Team setup is confirmed, we'll transition your account and arrange billing.</span>
+          </li>
+        </ul>
+      </div>
+
+      <div className="flex gap-3">
+        <Button variant="ghost" onClick={prev}>
+          Back
+        </Button>
+        <Button
+          onClick={handleSubmit}
+          disabled={submitting}
+          className="flex-1 text-[16px] py-4"
+        >
+          {submitting ? (
+            <span className="flex items-center justify-center gap-2">
+              <Loader2 size={18} className="animate-spin" />
+              Submitting...
+            </span>
+          ) : (
+            'Submit Embedded Team Request'
+          )}
+        </Button>
+      </div>
+
+      <CheckoutFooter />
+    </>
+  );
+}
+
 /** Post-payment confirmation view */
 function ConfirmationView() {
   const { data } = useOnboardingStore();
@@ -496,24 +650,8 @@ function ConfirmationView() {
         )}
       </div>
 
-      {/* What happens next */}
-      <div className="bg-white border-2 border-gray-border rounded-[16px] sm:rounded-[20px] p-5 sm:p-7 mb-6">
-        <h3 className="text-[16px] font-bold text-navy mb-3 font-heading">What happens next?</h3>
-        <ul className="space-y-2.5 text-sm text-gray-600">
-          <li className="flex gap-2.5 items-start">
-            <CheckCircle2 size={16} className="text-green-500 mt-0.5 flex-shrink-0" />
-            <span>Your n8n workspace at <strong className="text-accent font-mono text-xs">{data.slug}.awesomate.io</strong> is being provisioned</span>
-          </li>
-          <li className="flex gap-2.5 items-start">
-            <CheckCircle2 size={16} className="text-green-500 mt-0.5 flex-shrink-0" />
-            <span>You'll receive a confirmation email at <strong>{data.email}</strong></span>
-          </li>
-          <li className="flex gap-2.5 items-start">
-            <CheckCircle2 size={16} className="text-green-500 mt-0.5 flex-shrink-0" />
-            <span>Your instance will be ready within the hour</span>
-          </li>
-        </ul>
-      </div>
+      {/* Workspace launch CTA + Getting Started Guide */}
+      <GettingStartedGuide slug={data.slug} />
 
       {/* Order summary */}
       <div className="bg-white border-2 border-gray-border rounded-[16px] sm:rounded-[20px] p-5 sm:p-7 mb-6">
@@ -571,7 +709,7 @@ function ConfirmationView() {
       {!hasAssistedSetup && (
         <div className="text-center">
           <p className="text-gray-500 text-sm mb-4">
-            We'll email you when your workspace is ready. In the meantime, you can close this page.
+            Follow the guide above to set up your account. We'll also send a confirmation email to <strong>{data.email}</strong>.
           </p>
         </div>
       )}

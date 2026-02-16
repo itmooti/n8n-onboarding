@@ -1,5 +1,5 @@
 import type { OnboardingData, PlanKey, CostBreakdown } from '../types/onboarding';
-import { PLANS } from './constants';
+import { getEffectivePrice, getEffectiveYearlyPrice } from './affiliates';
 
 export function isPaidAddon(planKey: PlanKey): boolean {
   return planKey === 'essentials' || planKey === 'support-plus';
@@ -11,8 +11,11 @@ export function getActivePlan(data: OnboardingData): PlanKey {
 
 export function calculateCosts(data: OnboardingData): CostBreakdown {
   const activePlan = getActivePlan(data);
-  const plan = PLANS[activePlan] || PLANS.pro;
-  const planMonthly = data.billing === 'yearly' ? plan.yearlyPrice : plan.price;
+  const affCode = data.affiliate_code;
+
+  const monthlyPrice = getEffectivePrice(activePlan, affCode) ?? 0;
+  const yearlyMonthlyPrice = getEffectiveYearlyPrice(activePlan, affCode) ?? 0;
+  const planMonthly = data.billing === 'yearly' ? yearlyMonthlyPrice : monthlyPrice;
 
   let oneTime = 0;
   let addOnMonthly = 0;

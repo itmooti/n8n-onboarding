@@ -62,9 +62,13 @@ export interface OnboardingData {
   automation_areas: string[];
 
   // Payment
+  billing_email: string;
   payment_status: 'pending' | 'completed' | 'failed' | null;
   transaction_id: string | null;
   payment_error: string | null;
+
+  // Affiliate
+  affiliate_code: string | null;
 
   // Meta
   vitalsync_record_id: string | null;

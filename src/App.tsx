@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useOnboardingStore } from './store/onboarding';
 import { useVitalSync } from './hooks/useVitalSync';
 import { ProgressBar } from './components/layout/ProgressBar';
+import { AffiliateBanner } from './components/ui/AffiliateBanner';
 import { TOTAL_STEPS } from './lib/constants';
 
 import { Step01Welcome } from './steps/Step01Welcome';
@@ -29,8 +30,8 @@ const STEP_COMPONENTS: Record<number, React.ComponentType> = {
   4: Step04TechLevel,
   5: Step05WorkflowVolume,
   6: Step06PlanRecommendation,
-  7: Step07CredentialSetup,
-  8: Step08OpenRouter,
+  7: Step08OpenRouter,
+  8: Step07CredentialSetup,
   9: Step09AiAgents,
   10: Step10WorkflowSetup,
   11: Step11LocalHosting,
@@ -108,6 +109,9 @@ function App() {
           </div>
         </div>
       </div>
+
+      {/* Affiliate co-branding banner (only visible with ?aff= param) */}
+      <AffiliateBanner />
 
       {/* Progress bar */}
       <ProgressBar currentStep={step} />

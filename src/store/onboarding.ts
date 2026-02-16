@@ -6,6 +6,7 @@ import {
   createOnboardingRecord,
   updateOnboardingRecord,
 } from '../lib/api';
+import { getAffiliateConfig } from '../lib/affiliates';
 
 interface OnboardingStore {
   step: number;
@@ -55,9 +56,12 @@ const initialData: OnboardingData = {
   roles: [],
   automation_areas: [],
 
+  billing_email: '',
   payment_status: null,
   transaction_id: null,
   payment_error: null,
+
+  affiliate_code: null,
 
   vitalsync_record_id: null,
   completed_at: null,
@@ -108,7 +112,13 @@ export const useOnboardingStore = create<OnboardingStore>()(
 
       next: () => {
         const state = get();
-        const nextStep = Math.min(state.step + 1, 16);
+        let nextStep = Math.min(state.step + 1, 16);
+
+        // Skip Step 12 (WordPress hosting) if CMS is not confirmed WordPress
+        if (nextStep === 12 && state.data.detected_cms !== 'WordPress') {
+          nextStep = 13;
+        }
+
         set({ step: nextStep });
 
         // Fire-and-forget auto-save
@@ -121,7 +131,16 @@ export const useOnboardingStore = create<OnboardingStore>()(
         });
       },
 
-      prev: () => set((state) => ({ step: Math.max(state.step - 1, 1) })),
+      prev: () => set((state) => {
+        let prevStep = Math.max(state.step - 1, 1);
+
+        // Skip Step 12 (WordPress hosting) if CMS is not confirmed WordPress
+        if (prevStep === 12 && state.data.detected_cms !== 'WordPress') {
+          prevStep = 11;
+        }
+
+        return { step: prevStep };
+      }),
 
       update: (fields) =>
         set((state) => {
@@ -165,12 +184,23 @@ const VALID_PLAN_KEYS = ['essentials', 'support-plus', 'pro', 'embedded'];
 
 export function getInitialPlanFromURL(): void {
   const params = new URLSearchParams(window.location.search);
-  const plan = params.get('plan');
-  if (!plan) return;
 
   // Only apply on fresh sessions (step 1), not mid-flow refreshes
   const store = useOnboardingStore.getState();
   if (store.step > 1) return;
+
+  // Parse ?aff= affiliate code
+  const aff = params.get('aff');
+  if (aff) {
+    const config = getAffiliateConfig(aff);
+    if (config) {
+      store.update({ affiliate_code: config.code });
+    }
+  }
+
+  // Parse ?plan= (numeric 1-4 or plan key names)
+  const plan = params.get('plan');
+  if (!plan) return;
 
   // Accept numeric ?plan=1 through ?plan=4
   const mapped = PLAN_NUMBER_MAP[plan];

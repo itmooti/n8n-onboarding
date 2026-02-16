@@ -123,7 +123,7 @@ export function Step02BusinessDetails() {
       <NavButtons
         onBack={prev}
         onNext={next}
-        nextDisabled={!data.company_trading_name || !data.email || !data.sms_number || isOnlyPrefix(data.sms_number)}
+        nextDisabled={!data.company_trading_name || !data.email || !data.country || !data.sms_number || isOnlyPrefix(data.sms_number)}
       />
     </>
   );

@@ -1,7 +1,7 @@
 import { useOnboardingStore } from '../store/onboarding';
 import { SplitLayout } from '../components/layout/SplitLayout';
 import { VideoPlayer } from '../components/video/VideoPlayer';
-import { StepHeading, SelectionCard } from '../components/ui';
+import { StepHeading, SelectionCard, CostTracker } from '../components/ui';
 import { NavButtons } from '../components/layout';
 import type { SetupChoice, PlanKey } from '../types/onboarding';
 import { getActivePlan } from '../lib/costs';
@@ -62,6 +62,8 @@ export function AddonStep({
           badge={isFree ? 'FREE' : '+ AU$100'}
         />
       </div>
+
+      <CostTracker />
 
       <NavButtons
         onBack={prev}

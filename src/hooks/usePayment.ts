@@ -56,6 +56,8 @@ export function usePayment(): UsePaymentResult {
         const payload = {
           contact_id: Number(data.vitalsync_record_id),
           external_order_id: externalOrderId,
+          billing_email: data.billing_email,
+          affiliate_code: data.affiliate_code,
           products,
           billing: data.billing,
           billing_address: {

@@ -1,7 +1,7 @@
 import { useOnboardingStore } from '../store/onboarding';
 import { SplitLayout } from '../components/layout/SplitLayout';
 import { VideoPlayer } from '../components/video/VideoPlayer';
-import { StepHeading, SelectionCard } from '../components/ui';
+import { StepHeading, SelectionCard, CostTracker } from '../components/ui';
 import { NavButtons } from '../components/layout';
 import { getStepVideo } from '../lib/videos';
 
@@ -44,6 +44,8 @@ export function Step11LocalHosting() {
           </p>
         </div>
       )}
+
+      <CostTracker />
 
       <NavButtons
         onBack={prev}
