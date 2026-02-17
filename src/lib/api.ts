@@ -195,18 +195,19 @@ export async function updateOnboardingRecord(
     // causes a race condition where a late-arriving update overwrites 'Completed'.
     console.log('[VitalStats] Updating contact', recordId, 'with fields:', Object.keys(fields));
 
+    // CRITICAL: query must be inline (not a $variable) with _OPERATOR_ — passing
+    // query as a GraphQL variable silently ignores the where clause and updates
+    // all contacts instead of the targeted one.
+    const numericId = Number(recordId);
     const result = await gql<{ updateContact: { id: number } }>(
-      `mutation updateContact($payload: ContactUpdateInput, $query: [ContactQueryBuilderInput]) {
-        updateContact(payload: $payload, query: $query) { id }
+      `mutation updateContact($payload: ContactUpdateInput) {
+        updateContact(payload: $payload, query: [{ where: { id: ${numericId}, _OPERATOR_: eq } }]) { id }
       }`,
-      {
-        query: [{ where: { id: Number(recordId) } }],
-        payload: fields,
-      },
+      { payload: fields },
     );
 
     if (result?.updateContact) {
-      console.log('[VitalStats] Contact updated successfully, id:', recordId);
+      console.log('[VitalStats] Contact updated successfully, id:', result.updateContact.id);
     } else {
       console.error('[VitalStats] Update returned no result for id:', recordId);
     }
@@ -217,8 +218,8 @@ export async function updateOnboardingRecord(
 
 /**
  * Final update on completion (Step 16).
- * Only sends completion-specific fields — the comprehensive data save
- * already happened at step 15→16 via updateOnboardingRecord.
+ * Uses the same comprehensive payload as updateOnboardingRecord
+ * (which correctly targets a single contact) plus completion fields.
  */
 export async function markComplete(
   recordId: string,
@@ -232,26 +233,26 @@ export async function markComplete(
     data.workflow_setup === 'assisted';
 
   try {
-    const payload: Record<string, unknown> = {
-      onboarding_status: 'Completed',
-      needs_booking: needsBooking,
-      onboarding_completed_at: Math.floor(Date.now() / 1000),
-    };
+    // Use the full field map (same as updateOnboardingRecord) plus completion fields
+    const fields = buildFieldMap(data);
+    fields.onboarding_status = 'Completed';
+    fields.needs_booking = needsBooking;
+    fields.onboarding_completed_at = Math.floor(Date.now() / 1000);
 
-    console.log('[VitalStats] Marking complete', recordId, 'with payload:', payload);
+    console.log('[VitalStats] Marking complete', recordId, 'with fields:', Object.keys(fields));
 
-    const result = await gql<{ updateContact: { id: number; onboarding_status: string; needs_booking: boolean; onboarding_completed_at: number } }>(
-      `mutation updateContact($payload: ContactUpdateInput, $query: [ContactQueryBuilderInput]) {
-        updateContact(payload: $payload, query: $query) { id onboarding_status needs_booking onboarding_completed_at }
+    // CRITICAL: query must be inline (not a $variable) with _OPERATOR_ — passing
+    // query as a GraphQL variable silently ignores the where clause.
+    const numericId = Number(recordId);
+    const result = await gql<{ updateContact: { id: number } }>(
+      `mutation updateContact($payload: ContactUpdateInput) {
+        updateContact(payload: $payload, query: [{ where: { id: ${numericId}, _OPERATOR_: eq } }]) { id }
       }`,
-      {
-        query: [{ where: { id: Number(recordId) } }],
-        payload,
-      },
+      { payload: fields },
     );
 
     if (result?.updateContact) {
-      console.log('[VitalStats] Contact marked complete, id:', recordId, 'response:', result.updateContact);
+      console.log('[VitalStats] Contact marked complete, id:', result.updateContact.id);
     } else {
       console.error('[VitalStats] Mark complete returned no result for id:', recordId);
     }
