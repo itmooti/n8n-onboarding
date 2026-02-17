@@ -190,7 +190,9 @@ export async function updateOnboardingRecord(
 
   try {
     const fields = buildFieldMap(data);
-    fields.onboarding_status = 'In Progress';
+    // Don't set onboarding_status here — it's set to 'In Progress' at creation
+    // and only markComplete should change it to 'Completed'. Setting it here
+    // causes a race condition where a late-arriving update overwrites 'Completed'.
     console.log('[VitalStats] Updating contact', recordId, 'with fields:', Object.keys(fields));
 
     const result = await gql<{ updateContact: { id: number } }>(
