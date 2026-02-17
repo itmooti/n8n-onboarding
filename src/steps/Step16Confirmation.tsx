@@ -102,6 +102,12 @@ export function Step16Confirmation() {
     );
 
     if (result.success) {
+      // Mark complete in VitalStats BEFORE state update —
+      // the update triggers a re-render that can disrupt the async flow
+      if (data.vitalsync_record_id) {
+        markComplete(data.vitalsync_record_id, data);
+      }
+
       update({
         payment_status: 'completed',
         transaction_id: result.transaction_id || null,
@@ -111,11 +117,6 @@ export function Step16Confirmation() {
 
       // Scroll to top so user sees the confirmation screen
       window.scrollTo({ top: 0, behavior: 'smooth' });
-
-      // Mark complete in VitalStats
-      if (data.vitalsync_record_id) {
-        await markComplete(data.vitalsync_record_id, data);
-      }
     } else {
       setLocalError(result.error || 'Payment was declined. Please try a different card.');
       update({
