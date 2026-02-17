@@ -7,6 +7,7 @@ import { getActivePlan } from '../lib/costs';
 import { buildOrderLineItems, calculateCheckoutTotals } from '../lib/products';
 import { usePayment } from '../hooks/usePayment';
 import { markComplete } from '../lib/api';
+import { provisionAccount } from '../lib/provisioning';
 import { COUNTRIES } from '../lib/countries';
 import { isInquirePlan, getAffiliateConfig } from '../lib/affiliates';
 import { getStepVideo } from '../lib/videos';
@@ -102,10 +103,15 @@ export function Step16Confirmation() {
     );
 
     if (result.success) {
-      // Mark complete in VitalStats BEFORE state update —
-      // the update triggers a re-render that can disrupt the async flow
+      // Mark complete in VitalStats (fire-and-forget — don't block confirmation)
       if (data.vitalsync_record_id) {
         markComplete(data.vitalsync_record_id, data);
+      }
+
+      // Provision n8n + VitalSync account via webhook (awaited)
+      const provision = await provisionAccount(data);
+      if (!provision.success) {
+        console.error('[Provisioning] Failed:', provision.error);
       }
 
       update({
