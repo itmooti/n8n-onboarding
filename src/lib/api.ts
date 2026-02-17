@@ -207,6 +207,10 @@ export async function updateOnboardingRecord(
     );
 
     if (result?.updateContact) {
+      if (result.updateContact.id !== numericId) {
+        console.error('[VitalStats] TARGETING ERROR: requested', numericId, 'but API updated', result.updateContact.id);
+        return;
+      }
       console.log('[VitalStats] Contact updated successfully, id:', result.updateContact.id);
     } else {
       console.error('[VitalStats] Update returned no result for id:', recordId);
@@ -252,6 +256,10 @@ export async function markComplete(
     );
 
     if (result?.updateContact) {
+      if (result.updateContact.id !== numericId) {
+        console.error('[VitalStats] TARGETING ERROR: requested', numericId, 'but API updated', result.updateContact.id);
+        return;
+      }
       console.log('[VitalStats] Contact marked complete, id:', result.updateContact.id);
     } else {
       console.error('[VitalStats] Mark complete returned no result for id:', recordId);
