@@ -240,9 +240,9 @@ export async function markComplete(
 
     console.log('[VitalStats] Marking complete', recordId, 'with payload:', payload);
 
-    const result = await gql<{ updateContact: { id: number } }>(
+    const result = await gql<{ updateContact: { id: number; onboarding_status: string; needs_booking: boolean; onboarding_completed_at: number } }>(
       `mutation updateContact($payload: ContactUpdateInput, $query: [ContactQueryBuilderInput]) {
-        updateContact(payload: $payload, query: $query) { id }
+        updateContact(payload: $payload, query: $query) { id onboarding_status needs_booking onboarding_completed_at }
       }`,
       {
         query: [{ where: { id: Number(recordId) } }],
@@ -251,7 +251,7 @@ export async function markComplete(
     );
 
     if (result?.updateContact) {
-      console.log('[VitalStats] Contact marked complete, id:', recordId);
+      console.log('[VitalStats] Contact marked complete, id:', recordId, 'response:', result.updateContact);
     } else {
       console.error('[VitalStats] Mark complete returned no result for id:', recordId);
     }
