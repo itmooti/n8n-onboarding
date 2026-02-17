@@ -53,7 +53,7 @@ npm run build  # TypeScript + Vite production build
 ## Deployment
 - Docker (nginx alpine) on port 3050
 - GitHub Actions SSH deploy to 10.65.65.15
-- Domain: onboarding.awesomate.ai
+- Domain: n8n.awesomate.ai
 
 ## Video Generation
 ```bash

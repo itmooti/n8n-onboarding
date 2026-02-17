@@ -1,8 +1,6 @@
 import type { VitalSyncPlugin } from '../types/sdk';
 import type { OnboardingData } from '../types/onboarding';
 import { COUNTRIES } from './countries';
-import { isInquirePlan } from './affiliates';
-import { getActivePlan } from './costs';
 
 /**
  * VitalStats internal model name (prefixed).
@@ -136,8 +134,6 @@ function buildFieldMap(data: OnboardingData | Partial<OnboardingData>): Record<s
 
   // Payment
   if (data.billing_email) fields.Billing_Email = data.billing_email;
-  if (data.payment_status) fields.payment_status = data.payment_status;
-  if (data.transaction_id) fields.transaction_id = data.transaction_id;
 
   // Affiliate code
   if (data.affiliate_code) fields.aff_code = data.affiliate_code;
@@ -219,7 +215,8 @@ export async function updateOnboardingRecord(
 
 /**
  * Final update on completion (Step 16).
- * Saves all data + marks the record as completed.
+ * Only sends completion-specific fields — the comprehensive data save
+ * already happened at step 15→16 via updateOnboardingRecord.
  */
 export async function markComplete(
   recordId: string,
@@ -233,13 +230,13 @@ export async function markComplete(
     data.workflow_setup === 'assisted';
 
   try {
-    const fields = buildFieldMap(data);
-    const activePlan = getActivePlan(data);
-    const isEmbeddedInquiry = isInquirePlan(activePlan, data.affiliate_code);
-    fields.onboarding_status = isEmbeddedInquiry ? 'Embedded Inquiry' : 'Completed';
-    fields.needs_booking = needsBooking;
-    fields.onboarding_completed_at = Math.floor(Date.now() / 1000);
-    console.log('[VitalStats] Marking complete', recordId, 'with fields:', Object.keys(fields));
+    const payload: Record<string, unknown> = {
+      onboarding_status: 'Completed',
+      needs_booking: needsBooking,
+      onboarding_completed_at: Math.floor(Date.now() / 1000),
+    };
+
+    console.log('[VitalStats] Marking complete', recordId, 'with payload:', payload);
 
     const result = await gql<{ updateContact: { id: number } }>(
       `mutation updateContact($payload: ContactUpdateInput, $query: [ContactQueryBuilderInput]) {
@@ -247,7 +244,7 @@ export async function markComplete(
       }`,
       {
         query: [{ where: { id: Number(recordId) } }],
-        payload: fields,
+        payload,
       },
     );
 

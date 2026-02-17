@@ -114,13 +114,7 @@ export function Step16Confirmation() {
 
       // Mark complete in VitalStats
       if (data.vitalsync_record_id) {
-        markComplete(data.vitalsync_record_id, {
-          ...data,
-          payment_status: 'completed',
-          transaction_id: result.transaction_id || null,
-          payment_error: null,
-          completed_at: new Date().toISOString(),
-        });
+        await markComplete(data.vitalsync_record_id, data);
       }
     } else {
       setLocalError(result.error || 'Payment was declined. Please try a different card.');
