@@ -155,6 +155,11 @@ export const useOnboardingStore = create<OnboardingStore>()(
             }
           }
 
+          // Embedded Team is coming soon — never allow final_plan to be 'embedded'
+          if (newData.final_plan === 'embedded') {
+            newData.final_plan = 'pro';
+          }
+
           return { data: newData };
         }),
 
@@ -205,15 +210,16 @@ export function getInitialPlanFromURL(): void {
   // Accept numeric ?plan=1 through ?plan=4
   const mapped = PLAN_NUMBER_MAP[plan];
   if (mapped) {
-    store.update({ initial_plan: mapped, final_plan: mapped });
+    // Record interest in initial_plan, but cap final_plan at 'pro' (Embedded is coming soon)
+    const finalPlan = mapped === 'embedded' ? 'pro' : mapped;
+    store.update({ initial_plan: mapped, final_plan: finalPlan });
     return;
   }
 
   // Also accept plan key names (?plan=pro, ?plan=essentials, etc.)
   if (VALID_PLAN_KEYS.includes(plan)) {
-    store.update({
-      initial_plan: plan as OnboardingData['initial_plan'],
-      final_plan: plan as OnboardingData['initial_plan'],
-    });
+    const planKey = plan as OnboardingData['initial_plan'];
+    const finalPlan = planKey === 'embedded' ? 'pro' : planKey;
+    store.update({ initial_plan: planKey, final_plan: finalPlan });
   }
 }

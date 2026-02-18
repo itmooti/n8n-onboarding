@@ -6,7 +6,9 @@ export function isPaidAddon(planKey: PlanKey): boolean {
 }
 
 export function getActivePlan(data: OnboardingData): PlanKey {
-  return data.final_plan || data.recommended_plan || data.initial_plan;
+  const plan = data.final_plan || data.recommended_plan || data.initial_plan;
+  // Embedded Team is coming soon — cap at Pro for billing purposes
+  return plan === 'embedded' ? 'pro' : plan;
 }
 
 export function calculateCosts(data: OnboardingData): CostBreakdown {

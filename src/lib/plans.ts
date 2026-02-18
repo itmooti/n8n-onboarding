@@ -13,7 +13,7 @@ export function recommendPlan(
   }
 
   if (workflowVolume === 'full-engine') {
-    rec = techLevel === 'full-service' ? 'embedded' : 'pro';
+    rec = 'pro';
   } else if (workflowVolume === 'growing' && rec === 'essentials') {
     rec = 'support-plus';
   } else if (workflowVolume === 'unsure' && rec === 'essentials') {
