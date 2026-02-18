@@ -284,7 +284,6 @@ export function useWebsiteScraper(): UseWebsiteScraperResult {
       setLoading(false);
       return {
         company_name: prettyName,
-        email: `hello@${domain}`,
         summary: `${prettyName} — further details will be populated during the onboarding session.`,
       };
     }

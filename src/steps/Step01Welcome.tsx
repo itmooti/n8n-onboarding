@@ -31,10 +31,24 @@ export function Step01Welcome() {
         .split('/')[0]
         .split('.')[0];
 
+      // If domain is too long, derive initials from business name instead
+      const cleanDomain = domain.toLowerCase().replace(/[^a-z0-9]/g, '');
+      let autoSlug = cleanDomain.slice(0, 20);
+      if (cleanDomain.length > 20 && result.company_name) {
+        const initials = result.company_name
+          .toLowerCase()
+          .replace(/[^a-z\s]/g, '')
+          .split(/\s+/)
+          .filter((w: string) => w.length > 0 && !['the','and','or','of','for','a','an','in','on','at','to','by','pty','ltd'].includes(w))
+          .map((w: string) => w[0])
+          .join('');
+        if (initials.length >= 3) autoSlug = initials;
+      }
+
       update({
         company_trading_name: result.company_name || '',
         email: result.email || '',
-        slug: domain.toLowerCase(),
+        slug: autoSlug,
         slugAvailable: null, // Will be checked on Step 3
         color1: result.color1 || '#e9484d',
         color2: result.color2 || '#0f1128',

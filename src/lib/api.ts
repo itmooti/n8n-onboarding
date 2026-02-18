@@ -1,12 +1,5 @@
-import type { VitalSyncPlugin } from '../types/sdk';
 import type { OnboardingData } from '../types/onboarding';
 import { COUNTRIES } from './countries';
-
-/**
- * VitalStats internal model name (prefixed).
- * switchTo() requires the internal name, not the publicName.
- */
-const MODEL_NAME = 'ItmootiContact';
 
 /** GraphQL endpoint and API key for direct HTTP calls */
 const GQL_URL = 'https://itmooti.vitalstats.app/api/v1/graphql';
@@ -53,14 +46,6 @@ const TEAM_SIZE_MAP: Record<string, string> = {
 /** Convert country name to ISO alpha-2 code for the schema */
 function countryToCode(name: string): string {
   return COUNTRIES.find((c) => c.name === name)?.code || 'AU';
-}
-
-/**
- * Get the VitalStats plugin from the SDK.
- * Returns null if SDK isn't ready.
- */
-function getPlugin(): VitalSyncPlugin | null {
-  return window.getVitalStatsPlugin?.() ?? null;
 }
 
 /**
@@ -269,33 +254,25 @@ export async function markComplete(
   }
 }
 
+const SLUG_CHECK_URL = 'https://vitalstats.app/api/v1/graphql?puid=koYcEWvTIBHAgYsWEnLC1';
+const SLUG_API_KEY = 'XiEU9ISzcMp8xDMIVDwt0';
+
 /**
- * Check if a slug is already taken.
+ * Check if a slug is already taken via VitalStats API.
  * Returns true if available, false if taken.
  */
 export async function checkSlugAvailability(slug: string): Promise<boolean> {
   if (!slug || slug.length < 3) return false;
 
-  const plugin = getPlugin();
-  // If SDK isn't ready, default to available so we don't block the user
-  if (!plugin) return true;
-
   try {
-    const model = plugin.switchTo(MODEL_NAME);
-    const result = await model
-      .query()
-      .select(['subdomain_slug'])
-      .where('subdomain_slug', '=', slug)
-      .limit(1)
-      .fetchAllRecords()
-      .pipe(window.toMainInstance(true))
-      .toPromise();
+    const response = await fetch(`${SLUG_CHECK_URL}&slug=${encodeURIComponent(slug)}`, {
+      method: 'GET',
+      headers: { 'Api-Key': SLUG_API_KEY },
+    });
 
-    // If no matching records, slug is available
-    if (!result || Object.keys(result).length === 0) {
-      return true;
-    }
-    return false;
+    const json = await response.json();
+    // If data array has a match, slug is taken
+    return !json?.data?.length;
   } catch (err) {
     console.error('[VitalStats] Slug check failed:', err);
     // Default to available on error so we don't block the user
