@@ -63,7 +63,8 @@ async function gql<T = any>(query: string, variables: Record<string, unknown>): 
   });
   const json = await res.json();
   if (json.errors) {
-    console.error('[VitalStats GQL] Errors:', json.errors);
+    const msgs = json.errors.map((e: any) => e.message || JSON.stringify(e));
+    console.error('[VitalStats GQL] Errors:', msgs);
     return null;
   }
   return json.data;
@@ -182,20 +183,11 @@ export async function createOnboardingRecord(
     }
 
     // Create failed (likely duplicate email) — look up the existing contact
+    // and return their ID so subsequent save points can update them
     console.warn('[VitalStats] Create returned no ID — looking up existing contact by email');
     const existingId = await findContactByEmail(data.email || '');
     if (existingId) {
       console.log('[VitalStats] Using existing contact, id:', existingId);
-      // Update the existing record with latest onboarding data
-      const updateFields = buildFieldMap(data);
-      updateFields.onboarding_status = 'In Progress';
-      const numericId = Number(existingId);
-      await gql(
-        `mutation updateContact($payload: ContactUpdateInput) {
-          updateContact(payload: $payload, query: [{ where: { id: ${numericId}, _OPERATOR_: eq } }]) { id }
-        }`,
-        { payload: updateFields },
-      );
       return existingId;
     }
 
