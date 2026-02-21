@@ -127,7 +127,37 @@ function buildFieldMap(data: OnboardingData | Partial<OnboardingData>): Record<s
 }
 
 /**
+ * Look up an existing contact by email.
+ * Returns the numeric ID if found, null otherwise.
+ */
+async function findContactByEmail(email: string): Promise<string | null> {
+  if (!email) return null;
+
+  try {
+    // CRITICAL: use getContacts (plural) with inline query — see MEMORY.md
+    const result = await gql<{ getContacts: { id: number }[] }>(
+      `query getContacts {
+        getContacts(query: [{ where: { email: "${email}", _OPERATOR_: eq } }], limit: 1) { id }
+      }`,
+      {},
+    );
+
+    const contact = result?.getContacts?.[0];
+    if (contact?.id) {
+      console.log('[VitalStats] Found existing contact by email, id:', contact.id);
+      return String(contact.id);
+    }
+    return null;
+  } catch (err) {
+    console.error('[VitalStats] Email lookup failed:', err);
+    return null;
+  }
+}
+
+/**
  * Create a new Contact record via GraphQL.
+ * If the contact already exists (e.g. duplicate email → 400 error),
+ * falls back to looking up the existing contact and updating it.
  * Returns the server-assigned numeric ID.
  */
 export async function createOnboardingRecord(
@@ -145,14 +175,32 @@ export async function createOnboardingRecord(
       { payload: fields },
     );
 
-    if (!result?.createContact?.id) {
-      console.error('[VitalStats] Create returned no ID');
-      return null;
+    if (result?.createContact?.id) {
+      const id = String(result.createContact.id);
+      console.log('[VitalStats] Contact created, id:', id);
+      return id;
     }
 
-    const id = String(result.createContact.id);
-    console.log('[VitalStats] Contact created, id:', id);
-    return id;
+    // Create failed (likely duplicate email) — look up the existing contact
+    console.warn('[VitalStats] Create returned no ID — looking up existing contact by email');
+    const existingId = await findContactByEmail(data.email || '');
+    if (existingId) {
+      console.log('[VitalStats] Using existing contact, id:', existingId);
+      // Update the existing record with latest onboarding data
+      const updateFields = buildFieldMap(data);
+      updateFields.onboarding_status = 'In Progress';
+      const numericId = Number(existingId);
+      await gql(
+        `mutation updateContact($payload: ContactUpdateInput) {
+          updateContact(payload: $payload, query: [{ where: { id: ${numericId}, _OPERATOR_: eq } }]) { id }
+        }`,
+        { payload: updateFields },
+      );
+      return existingId;
+    }
+
+    console.error('[VitalStats] Create failed and no existing contact found');
+    return null;
   } catch (err) {
     console.error('[VitalStats] Failed to create record:', err);
     return null;
