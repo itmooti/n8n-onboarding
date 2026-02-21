@@ -89,7 +89,7 @@ export function Step16Confirmation() {
         ccnumber: rawDigits,
         code: cvv,
         expire_month: Number(expiryMonth),
-        expire_year: Number(expiryYear),
+        expire_year: Number(expiryYear) < 100 ? 2000 + Number(expiryYear) : Number(expiryYear),
       },
       {
         address: address.trim(),
