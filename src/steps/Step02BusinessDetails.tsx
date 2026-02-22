@@ -1,8 +1,11 @@
+import { useState } from 'react';
 import { useOnboardingStore } from '../store/onboarding';
 import { StepHeading, Input, Select, ColorPicker } from '../components/ui';
 import { NavButtons } from '../components/layout';
 import { useGeoDetect } from '../hooks/useGeoDetect';
 import { COUNTRIES, getPhonePrefix, isOnlyPrefix } from '../lib/countries';
+import { createOnboardingRecord } from '../lib/api';
+import { Loader2, AlertCircle } from 'lucide-react';
 
 const countryOptions = COUNTRIES.map((c) => ({
   value: c.name,
@@ -11,6 +14,8 @@ const countryOptions = COUNTRIES.map((c) => ({
 
 export function Step02BusinessDetails() {
   const { data, update, next, prev } = useOnboardingStore();
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Auto-detect country from IP (skips if website scraper already set it)
   useGeoDetect();
@@ -25,14 +30,44 @@ export function Step02BusinessDetails() {
     }
   };
 
+  const handleNext = async () => {
+    // If we already have a record ID (e.g. user went back), just advance
+    if (data.vitalsync_record_id) {
+      next();
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+
+    const id = await createOnboardingRecord(data);
+
+    if (id) {
+      update({ vitalsync_record_id: id });
+      setSaving(false);
+      next();
+    } else {
+      setSaving(false);
+      setError('We couldn\u2019t save your details. Please check your connection and try again.');
+    }
+  };
+
   const phonePlaceholder = `${getPhonePrefix(data.country)} 400 000 000`;
+
+  const formValid = !!(
+    data.company_trading_name &&
+    data.email &&
+    data.country &&
+    data.sms_number &&
+    !isOnlyPrefix(data.sms_number)
+  );
 
   return (
     <>
       <StepHeading
         title={
           data.websiteFetched
-            ? "We found these details — look right?"
+            ? "We found these details \u2014 look right?"
             : 'Tell us about your business'
         }
         subtitle={
@@ -120,11 +155,26 @@ export function Step02BusinessDetails() {
         />
       </div>
 
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 mt-4 flex gap-3 items-start">
+          <AlertCircle size={18} className="text-accent mt-0.5 flex-shrink-0" />
+          <div className="text-accent/80 text-sm">{error}</div>
+        </div>
+      )}
+
       <NavButtons
         onBack={prev}
-        onNext={next}
-        nextDisabled={!data.company_trading_name || !data.email || !data.country || !data.sms_number || isOnlyPrefix(data.sms_number)}
+        onNext={handleNext}
+        nextLabel={saving ? undefined : 'Continue'}
+        nextDisabled={!formValid || saving}
       />
+
+      {saving && (
+        <div className="flex items-center gap-2 mt-3 text-gray-400 text-sm">
+          <Loader2 size={16} className="animate-spin" />
+          Saving your details...
+        </div>
+      )}
     </>
   );
 }

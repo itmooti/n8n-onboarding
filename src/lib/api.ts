@@ -165,8 +165,18 @@ export async function createOnboardingRecord(
   data: Partial<OnboardingData>,
 ): Promise<string | null> {
   try {
-    const fields = buildFieldMap(data);
-    fields.onboarding_status = 'In Progress';
+    // Only send core contact fields on create — the GraphQL ContactCreateInput
+    // type rejects onboarding-specific fields (group 744). Those fields are
+    // saved later via updateOnboardingRecord at step 6→7, 13→14, 15→16.
+    const fields: Record<string, unknown> = {};
+    if (data.email) fields.email = data.email;
+    if (data.contact_first_name) fields.first_name = data.contact_first_name;
+    if (data.contact_last_name) fields.last_name = data.contact_last_name;
+    if (data.company_trading_name) fields.company = data.company_trading_name;
+    if (data.company_legal_name) fields.business_name = data.company_legal_name;
+    if (data.sms_number) fields.sms_number = data.sms_number;
+    if (data.country) fields.country = countryToCode(data.country);
+    if (data.website_url) fields.website = data.website_url;
     console.log('[VitalStats] Creating contact with fields:', Object.keys(fields));
 
     const result = await gql<{ createContact: { id: number; email: string } }>(

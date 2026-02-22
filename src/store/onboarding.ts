@@ -2,10 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { OnboardingData } from '../types/onboarding';
 import { recommendPlan } from '../lib/plans';
-import {
-  createOnboardingRecord,
-  updateOnboardingRecord,
-} from '../lib/api';
+import { updateOnboardingRecord } from '../lib/api';
 import { getAffiliateConfig } from '../lib/affiliates';
 
 interface OnboardingStore {
@@ -74,13 +71,8 @@ const initialData: OnboardingData = {
 async function autoSave(prevStep: number, nextStep: number, data: OnboardingData): Promise<string | null> {
   console.log(`[AutoSave] Step ${prevStep} → ${nextStep}, record_id: ${data.vitalsync_record_id || 'none'}`);
 
-  // Step 2 → 3: Create record with contact/business details
-  if (prevStep === 2 && nextStep === 3 && !data.vitalsync_record_id) {
-    console.log('[AutoSave] Creating new contact record');
-    const id = await createOnboardingRecord(data);
-    return id;
-  }
-
+  // Record creation is handled directly by Step02BusinessDetails (awaited,
+  // blocks advancement). autoSave only handles updates at key save points.
   if (!data.vitalsync_record_id) {
     console.log('[AutoSave] No record ID yet — skipping update');
     return null;
