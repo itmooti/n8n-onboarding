@@ -58,6 +58,7 @@ export function usePayment(): UsePaymentResult {
           external_order_id: externalOrderId,
           billing_email: data.billing_email,
           affiliate_code: data.affiliate_code,
+          country: data.country,
           products,
           billing: data.billing,
           billing_address: {

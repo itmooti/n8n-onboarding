@@ -42,6 +42,8 @@ export function Step16Confirmation() {
 
   const paymentComplete = data.payment_status === 'completed';
   const activePlan = getActivePlan(data);
+  const isAuNz = data.country === 'Australia' || data.country === 'New Zealand';
+  const currencySymbol = isAuNz ? 'AU$' : 'US$';
 
   // ──────────────── POST-PAYMENT CONFIRMATION ────────────────
   if (paymentComplete) {
@@ -190,7 +192,7 @@ export function Step16Confirmation() {
             >
               <span className="text-sm text-navy">{item.label}</span>
               <span className="text-sm font-bold text-navy">
-                AU${item.amount.toLocaleString()}
+                {currencySymbol}{item.amount.toLocaleString()}
                 {item.recurring && (
                   <span className="text-gray-400 font-normal">/{item.period === 'year' ? 'yr' : 'mo'}</span>
                 )}
@@ -206,16 +208,22 @@ export function Step16Confirmation() {
             <div className="flex justify-between mb-2">
               <span className="font-semibold text-gray-500 text-sm">Due today</span>
               <span className="font-extrabold text-navy text-xl font-heading">
-                AU${dueToday.toLocaleString()}
+                {currencySymbol}{dueToday.toLocaleString()}
               </span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-400 text-xs">Then recurring</span>
               <span className="text-gray-400 text-xs font-semibold">
-                AU${recurring.toLocaleString()}/{period === 'year' ? 'yr' : 'mo'}
+                {currencySymbol}{recurring.toLocaleString()}/{period === 'year' ? 'yr' : 'mo'}
               </span>
             </div>
           </div>
+
+          <p className="text-gray-400 text-xs mt-3 text-center">
+            {isAuNz
+              ? 'Amounts are in AUD and payable GST is inclusive'
+              : 'Amounts are in USD'}
+          </p>
         </div>
       </div>
 
@@ -474,7 +482,7 @@ export function Step16Confirmation() {
               Processing...
             </span>
           ) : (
-            `Pay AU$${dueToday.toLocaleString()} & Complete`
+            `Pay ${currencySymbol}${dueToday.toLocaleString()} & Complete`
           )}
         </Button>
       </div>
@@ -623,6 +631,8 @@ function ConfirmationView() {
   const activePlan = getActivePlan(data);
   const plan = PLANS[activePlan];
   const { dueToday, recurring, period } = calculateCheckoutTotals(data);
+  const isAuNz = data.country === 'Australia' || data.country === 'New Zealand';
+  const currencySymbol = isAuNz ? 'AU$' : 'US$';
 
   // Show booking CTA if they purchased any $100 assisted setup add-on
   const hasAssistedSetup =
@@ -650,7 +660,7 @@ function ConfirmationView() {
           Payment Successful!
         </h2>
         <p className="text-green-700 text-sm mt-2 font-medium">
-          Your payment of AU${dueToday.toLocaleString()} has been processed successfully.
+          Your payment of {currencySymbol}{dueToday.toLocaleString()} has been processed successfully.
         </p>
         {data.transaction_id && (
           <p className="text-gray-400 text-xs mt-1 font-mono">
@@ -673,7 +683,7 @@ function ConfirmationView() {
           <div className="flex justify-between">
             <span className="text-gray-400 text-[12px] uppercase tracking-[0.08em]">Billing</span>
             <span className="font-bold text-sm text-navy">
-              AU${recurring.toLocaleString()}/{period === 'year' ? 'yr' : 'mo'}
+              {currencySymbol}{recurring.toLocaleString()}/{period === 'year' ? 'yr' : 'mo'}
             </span>
           </div>
           {setupAddons.length > 0 && (
@@ -684,7 +694,7 @@ function ConfirmationView() {
           )}
           <div className="flex justify-between pt-2 border-t border-gray-border">
             <span className="text-gray-400 text-[12px] uppercase tracking-[0.08em]">Paid Today</span>
-            <span className="font-extrabold text-navy font-heading">AU${dueToday.toLocaleString()}</span>
+            <span className="font-extrabold text-navy font-heading">{currencySymbol}{dueToday.toLocaleString()}</span>
           </div>
         </div>
       </div>
