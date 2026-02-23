@@ -429,21 +429,35 @@ export function Step16Confirmation() {
 
       {/* Security & trust signals */}
       <div className="mb-5">
-        {/* Eway site seal */}
-        <div className="flex justify-center mb-4" id="eWAYBlock">
-          <a
-            href="https://www.eway.com.au/secure-site-seal?i=12&s=7&pid=7b219f54-20a0-48d5-ba3c-4180844729b3&theme=0"
-            title="Eway Payment Gateway"
-            target="_blank"
-            rel="nofollow noreferrer"
-          >
-            <img
-              alt="Eway Payment Gateway"
-              src="https://www.eway.com.au/developer/payment-code/verified-seal.php?img=12&size=7&pid=7b219f54-20a0-48d5-ba3c-4180844729b3&theme=0"
-              style={{ maxHeight: '70px' }}
-            />
-          </a>
-        </div>
+        {isAuNz ? (
+          /* Eway site seal — AU/NZ gateway */
+          <div className="flex justify-center mb-4" id="eWAYBlock">
+            <a
+              href="https://www.eway.com.au/secure-site-seal?i=12&s=7&pid=7b219f54-20a0-48d5-ba3c-4180844729b3&theme=0"
+              title="Eway Payment Gateway"
+              target="_blank"
+              rel="nofollow noreferrer"
+            >
+              <img
+                alt="Eway Payment Gateway"
+                src="https://www.eway.com.au/developer/payment-code/verified-seal.php?img=12&size=7&pid=7b219f54-20a0-48d5-ba3c-4180844729b3&theme=0"
+                style={{ maxHeight: '70px' }}
+              />
+            </a>
+          </div>
+        ) : (
+          /* Stripe badge — international gateway */
+          <div className="flex flex-col items-center justify-center mt-4 p-3 mb-4">
+            <span className="text-gray-400 text-xs font-medium mb-2">Guaranteed safe &amp; secure checkout</span>
+            <a href="https://stripe.com" target="_blank" rel="noopener noreferrer">
+              <img
+                alt="Powered by Stripe"
+                src="/powered-by-stripe.svg"
+                className="h-6 w-auto transition-opacity hover:opacity-80"
+              />
+            </a>
+          </div>
+        )}
 
         {/* Trust badges */}
         <div className="grid grid-cols-3 gap-3 text-center mb-4">
@@ -462,7 +476,7 @@ export function Step16Confirmation() {
         </div>
 
         <p className="text-center text-gray-400 text-[11px] leading-relaxed max-w-[400px] mx-auto">
-          Your payment is processed securely by Eway. Your card details are encrypted and never stored on our servers. You can cancel your subscription at any time.
+          Your payment is processed securely by {isAuNz ? 'Eway' : 'Stripe'}. Your card details are encrypted and never stored on our servers. You can cancel your subscription at any time.
         </p>
       </div>
 
